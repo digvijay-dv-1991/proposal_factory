@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Jobs\GenerateAiAnalysis;
+use App\Jobs\GenerateCompetitiveAnalysis;
 use App\Models\Opportunity;
 use App\Models\OpportunityBidComment;
 use App\Models\OpportunityBidInvite;
@@ -12,6 +14,7 @@ use App\Models\User;
 use App\Notifications\InvitedToReviewOpportunity;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -205,6 +208,26 @@ class OpportunityModal extends Component
 
     public string $newBidComment = '';
 
+    /**
+     * Name typed by someone posting to the chat while not logged in — the
+     * chat is open to everyone until the auth/roles phase starts.
+     */
+    public string $guestName = '';
+
+    /**
+     * Seconds a "Generate with AI" run is allowed to poll before the UI
+     * gives up and reports a failure instead of polling forever.
+     */
+    private const GENERATION_TIMEOUT_SECONDS = 90;
+
+    public bool $generatingAiAnalysis = false;
+
+    public ?string $aiAnalysisStartedAt = null;
+
+    public bool $generatingCompetitiveAnalysis = false;
+
+    public ?string $competitiveAnalysisStartedAt = null;
+
     public function mount(?int $opportunityId = null): void
     {
         $this->opportunityId = $opportunityId;
@@ -320,10 +343,11 @@ class OpportunityModal extends Component
         $this->bidComments = $this->opportunity->bidComments()->with('user')->oldest()->get()
             ->map(function (OpportunityBidComment $comment): array {
                 $commenter = $comment->user;
+                $name = $commenter !== null ? $commenter->name : $comment->author_name;
 
                 return [
                     'id' => $comment->id,
-                    'name' => $commenter !== null ? $commenter->name : 'Deleted user',
+                    'name' => $name ?: 'Guest',
                     'text' => $comment->text,
                     'created_at' => $comment->created_at,
                 ];
@@ -385,23 +409,103 @@ class OpportunityModal extends Component
 
     public function postBidComment(): void
     {
-        $this->validate(['newBidComment' => ['required', 'string', 'max:2000']]);
-
         $user = auth()->user();
 
-        if ($user === null) {
-            $this->addError('newBidComment', 'You must be logged in to comment.');
+        $rules = ['newBidComment' => ['required', 'string', 'max:2000']];
 
-            return;
+        if ($user === null) {
+            $rules['guestName'] = ['required', 'string', 'max:255'];
         }
 
+        $this->validate($rules);
+
         $this->opportunity->bidComments()->create([
-            'user_id' => $user->id,
+            'user_id' => $user?->id,
+            'author_name' => $user !== null ? null : $this->guestName,
             'text' => $this->newBidComment,
         ]);
 
         $this->newBidComment = '';
         $this->refreshBidComments();
+    }
+
+    public function generateAiAnalysis(): void
+    {
+        if (! $this->opportunity->exists || $this->generatingAiAnalysis) {
+            return;
+        }
+
+        if (! RateLimiter::attempt('ai-analysis:'.$this->opportunity->id, 5, fn () => true, 600)) {
+            $this->addError('aiAnalysis', 'Too many generation attempts for this opportunity — wait a few minutes and try again.');
+
+            return;
+        }
+
+        GenerateAiAnalysis::dispatch($this->opportunity->id);
+        $this->generatingAiAnalysis = true;
+        $this->aiAnalysisStartedAt = now()->toIso8601String();
+    }
+
+    public function pollAiAnalysis(): void
+    {
+        if (! $this->generatingAiAnalysis || $this->aiAnalysisStartedAt === null) {
+            return;
+        }
+
+        $this->opportunity->refresh();
+        $startedAt = Carbon::parse($this->aiAnalysisStartedAt);
+        $generatedAt = $this->opportunity->ai_analysis_generated_at;
+
+        if ($generatedAt !== null && $generatedAt->greaterThanOrEqualTo($startedAt)) {
+            $this->generatingAiAnalysis = false;
+
+            return;
+        }
+
+        if ($startedAt->diffInSeconds(now()) > self::GENERATION_TIMEOUT_SECONDS) {
+            $this->generatingAiAnalysis = false;
+            $this->addError('aiAnalysis', 'AI generation is taking too long or failed. Please try again.');
+        }
+    }
+
+    public function generateCompetitiveAnalysis(): void
+    {
+        if (! $this->opportunity->exists || $this->generatingCompetitiveAnalysis) {
+            return;
+        }
+
+        if (! RateLimiter::attempt('competitive-analysis:'.$this->opportunity->id, 5, fn () => true, 600)) {
+            $this->addError('competitiveAnalysis', 'Too many generation attempts for this opportunity — wait a few minutes and try again.');
+
+            return;
+        }
+
+        GenerateCompetitiveAnalysis::dispatch($this->opportunity->id);
+        $this->generatingCompetitiveAnalysis = true;
+        $this->competitiveAnalysisStartedAt = now()->toIso8601String();
+    }
+
+    public function pollCompetitiveAnalysis(): void
+    {
+        if (! $this->generatingCompetitiveAnalysis || $this->competitiveAnalysisStartedAt === null) {
+            return;
+        }
+
+        $this->opportunity->refresh();
+        $startedAt = Carbon::parse($this->competitiveAnalysisStartedAt);
+        $generatedAt = $this->opportunity->competitive_analysis_generated_at;
+
+        if ($generatedAt !== null && $generatedAt->greaterThanOrEqualTo($startedAt)) {
+            $this->generatingCompetitiveAnalysis = false;
+            $this->form = $this->buildForm();
+
+            return;
+        }
+
+        if ($startedAt->diffInSeconds(now()) > self::GENERATION_TIMEOUT_SECONDS) {
+            $this->generatingCompetitiveAnalysis = false;
+            $this->addError('competitiveAnalysis', 'AI generation is taking too long or failed. Please try again.');
+        }
     }
 
     public function addContact(): void

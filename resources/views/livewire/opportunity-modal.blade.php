@@ -238,16 +238,22 @@
                                 </div>
                                 @if (! $opportunity->exists)
                                     <div class="notice">Save the opportunity to start the discussion.</div>
-                                @elseif (auth()->check())
-                                    <div class="inline-actions">
-                                        <div class="field repeater-field-grow">
+                                @else
+                                    <div class="bid-chat-form">
+                                        @unless (auth()->check())
+                                            <div class="field">
+                                                <label>Your name</label>
+                                                <input type="text" wire:model="guestName" placeholder="Your name">
+                                                @error('guestName') <div class="source-required-note">{{ $message }}</div> @enderror
+                                            </div>
+                                        @endunless
+                                        <div class="field">
+                                            <label>Comment</label>
                                             <textarea wire:model="newBidComment" placeholder="Should we bid on this? Share your take..."></textarea>
                                             @error('newBidComment') <div class="source-required-note">{{ $message }}</div> @enderror
                                         </div>
-                                        <button type="button" class="btn primary" wire:click="postBidComment">Post</button>
+                                        <button type="button" class="btn primary bid-chat-post" wire:click="postBidComment">Post</button>
                                     </div>
-                                @else
-                                    <div class="notice">Log in to add a comment.</div>
                                 @endif
                             </div>
                         </div>
@@ -546,7 +552,40 @@
                         </div>
                     </div>
                 @elseif ($activeTab === 'Competitive Analysis')
-                    <div class="tab-page active">
+                    <div class="tab-page active" @if ($generatingCompetitiveAnalysis) wire:poll.3s="pollCompetitiveAnalysis" @endif>
+                        <div class="panel ai-generate-panel">
+                            <div class="ai-generate-row">
+                                <div>
+                                    <h3>AI Research</h3>
+                                    @if ($opportunity->competitive_analysis_generated_at)
+                                        <p class="ai-generated-note">Last generated {{ $opportunity->competitive_analysis_generated_at->diffForHumans() }} — every fact below is sourced, see Sources Found.</p>
+                                    @else
+                                        <p class="ai-generated-note">Not generated yet. AI will search the web and fill every field below, citing sources — anything it can't verify is left blank.</p>
+                                    @endif
+                                </div>
+                                <button type="button" class="btn primary" wire:click="generateCompetitiveAnalysis" wire:loading.attr="disabled" wire:target="generateCompetitiveAnalysis" @disabled($generatingCompetitiveAnalysis)>
+                                    @if ($generatingCompetitiveAnalysis)
+                                        Researching&hellip;
+                                    @elseif ($opportunity->competitive_analysis_generated_at)
+                                        Regenerate with AI
+                                    @else
+                                        Generate with AI
+                                    @endif
+                                </button>
+                            </div>
+                            @error('competitiveAnalysis') <div class="source-required-note">{{ $message }}</div> @enderror
+                            @if (count($opportunity->competitive_analysis_sources ?? []))
+                                <div class="ai-sources">
+                                    <strong>Sources found</strong>
+                                    <ul>
+                                        @foreach ($opportunity->competitive_analysis_sources as $source)
+                                            <li><a href="{{ $source['url'] }}" target="_blank" rel="noopener noreferrer">{{ $source['label'] }}</a></li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                        </div>
+
                         <div class="panel">
                             <h3>Competitive Analysis</h3>
                             <div class="fields">
@@ -739,29 +778,60 @@
                         @endif
                     </div>
                 @elseif ($activeTab === 'AI Analysis')
-                    <div class="tab-page active">
+                    <div class="tab-page active" @if ($generatingAiAnalysis) wire:poll.3s="pollAiAnalysis" @endif>
+                        <div class="panel ai-generate-panel">
+                            <div class="ai-generate-row">
+                                <div>
+                                    <h3>AI Analysis</h3>
+                                    @if ($opportunity->ai_analysis_generated_at)
+                                        <p class="ai-generated-note">Last generated {{ $opportunity->ai_analysis_generated_at->diffForHumans() }} — written from the fields already recorded on this opportunity.</p>
+                                    @else
+                                        <p class="ai-generated-note">Not generated yet.</p>
+                                    @endif
+                                </div>
+                                <button type="button" class="btn primary" wire:click="generateAiAnalysis" wire:loading.attr="disabled" wire:target="generateAiAnalysis" @disabled($generatingAiAnalysis)>
+                                    @if ($generatingAiAnalysis)
+                                        Generating&hellip;
+                                    @elseif ($opportunity->ai_analysis_generated_at)
+                                        Regenerate with AI
+                                    @else
+                                        Generate with AI
+                                    @endif
+                                </button>
+                            </div>
+                            @error('aiAnalysis') <div class="source-required-note">{{ $message }}</div> @enderror
+                        </div>
+
                         <div class="panel">
                             <h3>Executive Summary</h3>
-                            <p>{{ $opportunity->description ?: 'No description recorded yet.' }}</p>
+                            <p>{{ $opportunity->ai_executive_summary ?: ($opportunity->description ?: 'No description recorded yet.') }}</p>
                         </div>
                         <div class="panel">
                             <h3>Why This Matters</h3>
                             <p>
-                                This opportunity aligns with
-                                {{ ($opportunity->focus ?? []) !== [] ? implode(', ', $opportunity->focus) : 'no recorded' }}
-                                ALQIMI focus area(s), with a Bid Strength score of {{ $opportunity->go_strength }}% ({{ $opportunity->fit_label }}).
+                                @if ($opportunity->ai_why_it_matters)
+                                    {{ $opportunity->ai_why_it_matters }}
+                                @else
+                                    This opportunity aligns with
+                                    {{ ($opportunity->focus ?? []) !== [] ? implode(', ', $opportunity->focus) : 'no recorded' }}
+                                    ALQIMI focus area(s), with a Bid Strength score of {{ $opportunity->go_strength }}% ({{ $opportunity->fit_label }}).
+                                @endif
                             </p>
                         </div>
                         <div class="panel">
                             <h3>Red-Team Critique</h3>
-                            <p>{{ $opportunity->gap ?: 'No gap or risk analysis recorded yet.' }}</p>
+                            <p>{{ $opportunity->ai_red_team_critique ?: ($opportunity->gap ?: 'No gap or risk analysis recorded yet.') }}</p>
                         </div>
                         <div class="panel">
                             <h3>Competitive Outlook</h3>
                             <p>
-                                Incumbent: {{ $opportunity->incumbent ?: 'Unknown' }}.
-                                Position: {{ $opportunity->competitive_position ?: 'Unknown' }}.
-                                {{ $opportunity->competitive_analysis ?: 'No competitive analysis recorded yet.' }}
+                                @if ($opportunity->ai_competitive_outlook)
+                                    {{ $opportunity->ai_competitive_outlook }}
+                                @else
+                                    Incumbent: {{ $opportunity->incumbent ?: 'Unknown' }}.
+                                    Position: {{ $opportunity->competitive_position ?: 'Unknown' }}.
+                                    {{ $opportunity->competitive_analysis ?: 'No competitive analysis recorded yet.' }}
+                                @endif
                             </p>
                         </div>
                     </div>

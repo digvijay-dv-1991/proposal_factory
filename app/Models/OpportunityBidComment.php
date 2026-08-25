@@ -15,6 +15,7 @@ class OpportunityBidComment extends Model
     protected $fillable = [
         'opportunity_id',
         'user_id',
+        'author_name',
         'text',
     ];
 

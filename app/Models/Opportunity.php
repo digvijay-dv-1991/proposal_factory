@@ -28,9 +28,12 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $monitoring_last_checked
  * @property Carbon|null $action_due
  * @property Carbon|null $decision_date
+ * @property Carbon|null $ai_analysis_generated_at
+ * @property Carbon|null $competitive_analysis_generated_at
  * @property array<int, string>|null $focus
  * @property array<int, string>|null $keywords
  * @property array<int, string>|null $capture_plan
+ * @property array<int, array{label: string, url: string}>|null $competitive_analysis_sources
  */
 class Opportunity extends Model
 {
@@ -100,6 +103,13 @@ class Opportunity extends Model
         'decision_by',
         'decision_comment',
         'decision_date',
+        'ai_executive_summary',
+        'ai_why_it_matters',
+        'ai_red_team_critique',
+        'ai_competitive_outlook',
+        'ai_analysis_generated_at',
+        'competitive_analysis_generated_at',
+        'competitive_analysis_sources',
     ];
 
     /**
@@ -129,9 +139,12 @@ class Opportunity extends Model
             'monitoring_last_checked' => 'date',
             'action_due' => 'date',
             'decision_date' => 'date',
+            'ai_analysis_generated_at' => 'datetime',
+            'competitive_analysis_generated_at' => 'datetime',
             'focus' => 'array',
             'keywords' => 'array',
             'capture_plan' => 'array',
+            'competitive_analysis_sources' => 'array',
             'source_title_verified' => 'boolean',
             'probability' => 'integer',
             'bid_priority' => 'integer',

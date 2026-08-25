@@ -38,6 +38,17 @@ class OpportunityBoard extends Component
     public const FIT_LEVELS = ['Strong', 'Moderate', 'No Fit'];
 
     /**
+     * Phases hidden from the default board (no phase filter selected) —
+     * opportunities in these phases are already reachable through the
+     * dedicated Submitted/No Bid tabs, so showing them as board columns too
+     * is redundant. Explicitly selecting one of these via the Status
+     * dropdown still shows it (matches the reference).
+     *
+     * @var array<int, string>
+     */
+    public const HIDDEN_DEFAULT_PHASES = ['Submitted', 'Source Selection'];
+
+    /**
      * The top view tabs: [tab key => [kicker, label]]. Monitoring/Pending/
      * More Info/Bid/No Bid all just point at $decisionFilter and Submitted
      * points at $phaseFilter — the SAME properties the "Decision" and
@@ -383,6 +394,21 @@ class OpportunityBoard extends Component
 
             return [$phase => ['items' => $items, 'total' => (float) $items->sum(fn (Opportunity $o) => (float) $o->value)]];
         });
+    }
+
+    /**
+     * The phase columns actually rendered on the board — all 6 when a
+     * specific phase is selected via the Status dropdown, or the 4
+     * non-hidden ones on the default (unfiltered) board.
+     *
+     * @return array<int, string>
+     */
+    #[Computed]
+    public function visiblePhases(): array
+    {
+        return $this->phaseFilter !== ''
+            ? [$this->phaseFilter]
+            : array_values(array_diff(self::PHASES, self::HIDDEN_DEFAULT_PHASES));
     }
 
     /**

@@ -200,28 +200,33 @@
             </div>
         </div>
     @elseif ($activeView === 'board')
+        @php($visiblePhaseCount = count($this->visiblePhases()))
         <div class="board-shell">
-            <div class="board {{ $phaseFilter !== '' ? 'phase-filtered' : '' }}">
-                @foreach ($this->board() as $phase => $column)
-                    @if ($phaseFilter === '' || $phaseFilter === $phase)
-                        <div class="column">
-                            <button type="button" class="phase-filter-btn {{ $phaseFilter === $phase ? 'active' : '' }}" wire:click="filterByPhase('{{ $phase }}')">
-                                <span class="column-title"><span class="dot"></span>{{ $phase }}</span>
-                                <span class="column-meta">
-                                    <strong>{{ $column['items']->count() }}</strong>
-                                    {{ \Illuminate\Support\Number::currency($column['total'], in: 'USD', precision: 0) }}
-                                </span>
-                            </button>
+            <div
+                class="board {{ $phaseFilter !== '' ? 'phase-filtered' : '' }}"
+                @if ($phaseFilter === '')
+                    style="grid-template-columns: repeat({{ $visiblePhaseCount }}, minmax(245px, 1fr)); min-width: {{ $visiblePhaseCount * 245 + ($visiblePhaseCount - 1) * 18 }}px;"
+                @endif
+            >
+                @foreach ($this->visiblePhases() as $phase)
+                    @php($column = $this->board()[$phase])
+                    <div class="column">
+                        <button type="button" class="phase-filter-btn {{ $phaseFilter === $phase ? 'active' : '' }}" wire:click="filterByPhase('{{ $phase }}')">
+                            <span class="column-title"><span class="dot"></span>{{ $phase }}</span>
+                            <span class="column-meta">
+                                <strong>{{ $column['items']->count() }}</strong>
+                                {{ \Illuminate\Support\Number::currency($column['total'], in: 'USD', precision: 0) }}
+                            </span>
+                        </button>
 
-                            <div class="stack">
-                                @forelse ($column['items'] as $opportunity)
-                                    <x-opportunity-card :opportunity="$opportunity" wire:key="opportunity-{{ $opportunity->id }}" />
-                                @empty
-                                    <div class="empty">No opportunities</div>
-                                @endforelse
-                            </div>
+                        <div class="stack">
+                            @forelse ($column['items'] as $opportunity)
+                                <x-opportunity-card :opportunity="$opportunity" wire:key="opportunity-{{ $opportunity->id }}" />
+                            @empty
+                                <div class="empty">No opportunities</div>
+                            @endforelse
                         </div>
-                    @endif
+                    </div>
                 @endforeach
             </div>
         </div>

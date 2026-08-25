@@ -195,8 +195,8 @@ button {
     position: absolute;
     top: 52px;
     right: 0;
-    width: 340px;
-    max-height: 420px;
+    width: min(340px, 92vw);
+    max-height: min(420px, 70vh);
     overflow: auto;
     background: #fff;
     border: 1px solid var(--line);
@@ -1675,15 +1675,13 @@ input, select {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
     animation: overlay-fade-in .16s ease-out;
 }
 
 .modal {
-    width: min(1120px, 96vw);
-    height: min(92vh, 900px);
+    width: 100vw;
+    height: 100dvh;
     background: #fff;
-    border-radius: 12px;
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
@@ -1706,7 +1704,7 @@ input, select {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 18px 22px;
+    padding: clamp(14px, 1.6vw, 22px) clamp(16px, 3vw, 32px);
     border-bottom: 1px solid var(--line);
     flex: 0 0 auto;
 }
@@ -1758,7 +1756,7 @@ input, select {
     display: flex;
     gap: 0;
     flex-wrap: wrap;
-    padding: 0 22px;
+    padding: 0 clamp(16px, 3vw, 32px);
     border-bottom: 1px solid var(--line);
     flex: 0 0 auto;
 }
@@ -1797,9 +1795,11 @@ input, select {
 .modal-body {
     display: grid;
     min-height: 0;
-    grid-template-columns: 1.08fr 1.08fr .7fr;
-    gap: 14px;
-    padding: 16px;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.08fr) minmax(280px, .7fr);
+    gap: clamp(12px, 1.5vw, 24px);
+    padding: clamp(16px, 2vw, 32px);
+    width: min(100%, 1760px);
+    margin: 0 auto;
     overflow: auto;
     flex: 1 1 auto;
 }
@@ -1809,7 +1809,7 @@ input, select {
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    padding: 14px 22px;
+    padding: 14px clamp(16px, 3vw, 32px);
     border-top: 1px solid var(--line);
     flex: 0 0 auto;
 }
@@ -2388,23 +2388,25 @@ input, select {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: 260px;
+    max-height: clamp(180px, 28vh, 420px);
     overflow-y: auto;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    padding-right: 2px;
 }
 
 .bid-chat-message {
-    padding: 8px 12px;
-    border-radius: 9px;
+    padding: 10px 14px;
+    border-radius: 10px;
     background: #f3f6f9;
     border: 1px solid #e6ebef;
 }
 
 .bid-chat-meta {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
 }
 
 .bid-chat-name {
@@ -2421,9 +2423,88 @@ input, select {
 
 .bid-chat-text {
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.55;
     color: var(--ink);
     white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.bid-chat-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.bid-chat-form .field {
+    flex: 1 1 100%;
+}
+
+.bid-chat-form .field:has(input) {
+    flex: 1 1 clamp(140px, 22%, 220px);
+}
+
+.bid-chat-form .field textarea {
+    min-height: 44px;
+}
+
+.bid-chat-post {
+    flex: 0 0 auto;
+    align-self: flex-end;
+    height: 40px;
+    padding: 0 22px;
+}
+
+@media (max-width: 560px) {
+    .bid-chat-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .bid-chat-post {
+        width: 100%;
+    }
+}
+
+/* AI generation panels (AI Analysis, Competitive Analysis) */
+
+.ai-generate-panel {
+    background: #f6f8fb;
+    border: 1px solid #dbe3ec;
+}
+
+.ai-generate-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 16px;
+}
+
+.ai-generate-row button {
+    flex: 0 0 auto;
+}
+
+.ai-generated-note {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.ai-sources {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #dbe3ec;
+    font-size: 12px;
+}
+
+.ai-sources ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+}
+
+.ai-sources li {
+    margin-bottom: 3px;
 }
 
 /* No Bid / Submitted views — flat row-lists instead of the phase board */
