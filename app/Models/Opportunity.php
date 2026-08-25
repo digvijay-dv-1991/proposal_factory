@@ -19,6 +19,8 @@ use Illuminate\Support\Carbon;
  * @property-read bool $has_competitive_analysis
  * @property-read array<int, array{label: string, score: int}> $bid_strength_breakdown
  * @property-read array<int, string> $competitor_names
+ * @property-read array<int, array{label: string, url: string}> $accessible_links
+ * @property-read array<int, array{name: string, url: string, role: string}> $competitor_links
  * @property Carbon|null $date_added
  * @property Carbon|null $response_due
  * @property Carbon|null $release_date
@@ -52,9 +54,7 @@ class Opportunity extends Model
         'discovered_at',
         'link',
         'govwin_link',
-        'product_alignment',
         'alqimi_sme',
-        'section_rationale',
         'origin',
         'focus',
         'keywords',
@@ -85,6 +85,7 @@ class Opportunity extends Model
         'competitive_next_action',
         'competitive_position',
         'competitors',
+        'teaming',
         'incumbent',
         'incumbent_contract',
         'incumbent_award_value',
@@ -289,21 +290,97 @@ class Opportunity extends Model
         });
     }
 
+    /**
+     * The "Accessible Links" panel on the Overview tab — every structured
+     * URL field recorded on the opportunity. The reference also regex-scans
+     * every free-text field for embedded URLs; that text-mining is not
+     * ported, only the same visual panel driven by the actual URL columns.
+     */
+    protected function accessibleLinks(): Attribute
+    {
+        return Attribute::get(function (): array {
+            $links = [];
+
+            foreach ([
+                'Official RFP / Solicitation Source' => $this->link,
+                'GovWin Reference (Secondary)' => $this->govwin_link,
+                'Incumbent Verification Source' => $this->incumbent_source,
+            ] as $label => $value) {
+                if ($value !== null && filter_var($value, FILTER_VALIDATE_URL) !== false) {
+                    $links[] = ['label' => $label, 'url' => $value];
+                }
+            }
+
+            return $links;
+        });
+    }
+
+    /**
+     * The "Competitor Links" panel on the Overview tab — matches the
+     * incumbent and named competitors against the seeded market-competitor
+     * catalog (ported in Day 2) rather than the reference's hardcoded
+     * knownCompanyWebsites list, which was never ported as structured data.
+     */
+    protected function competitorLinks(): Attribute
+    {
+        return Attribute::get(function (): array {
+            $names = array_unique(array_filter([
+                ...($this->incumbent && $this->incumbent !== 'Unknown' ? [$this->incumbent] : []),
+                ...$this->competitor_names,
+            ]));
+
+            if ($names === []) {
+                return [];
+            }
+
+            $catalog = MarketCompetitor::query()->get(['name', 'url'])->keyBy(
+                fn (MarketCompetitor $competitor): string => mb_strtolower($competitor->name)
+            );
+
+            $links = [];
+            foreach ($names as $name) {
+                $match = $catalog->get(mb_strtolower($name));
+
+                if ($match !== null) {
+                    $links[] = [
+                        'name' => $match->name,
+                        'url' => $match->url,
+                        'role' => mb_strtolower($name) === mb_strtolower((string) $this->incumbent) ? 'Incumbent' : 'Competitor',
+                    ];
+                }
+            }
+
+            return $links;
+        });
+    }
+
+    /**
+     * @return HasMany<OpportunityContact, $this>
+     */
     public function contacts(): HasMany
     {
         return $this->hasMany(OpportunityContact::class);
     }
 
+    /**
+     * @return HasMany<OpportunityPartner, $this>
+     */
     public function partners(): HasMany
     {
         return $this->hasMany(OpportunityPartner::class);
     }
 
+    /**
+     * @return HasMany<OpportunityAttachment, $this>
+     */
     public function attachments(): HasMany
     {
         return $this->hasMany(OpportunityAttachment::class);
     }
 
+    /**
+     * @return HasMany<OpportunityUpdate, $this>
+     */
     public function updates(): HasMany
     {
         return $this->hasMany(OpportunityUpdate::class);
@@ -327,6 +404,22 @@ class Opportunity extends Model
     public function relationships(): HasMany
     {
         return $this->hasMany(OpportunityRelationship::class);
+    }
+
+    /**
+     * @return HasMany<OpportunityBidInvite, $this>
+     */
+    public function bidInvites(): HasMany
+    {
+        return $this->hasMany(OpportunityBidInvite::class);
+    }
+
+    /**
+     * @return HasMany<OpportunityBidComment, $this>
+     */
+    public function bidComments(): HasMany
+    {
+        return $this->hasMany(OpportunityBidComment::class);
     }
 
     /**

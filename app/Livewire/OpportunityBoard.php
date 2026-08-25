@@ -6,9 +6,11 @@ use App\Models\Opportunity;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 #[Layout('layouts.capture-deck')]
@@ -86,6 +88,76 @@ class OpportunityBoard extends Component
      * board content directly, they don't open a dialog). Never a URL change.
      */
     public string $activeView = 'board';
+
+    /**
+     * The opportunity currently open in the detail modal, or null when it's
+     * closed. Editing an existing card sets this; "+ New Opportunity" opens
+     * the same modal with $creatingOpportunity instead.
+     */
+    public ?int $activeOpportunityId = null;
+
+    public bool $creatingOpportunity = false;
+
+    public bool $showNotifications = false;
+
+    public function toggleNotifications(): void
+    {
+        $this->showNotifications = ! $this->showNotifications;
+    }
+
+    /**
+     * @return Collection<int, DatabaseNotification>
+     */
+    #[Computed]
+    public function notifications(): Collection
+    {
+        return auth()->user()?->notifications()->latest()->limit(20)->get() ?? collect();
+    }
+
+    #[Computed]
+    public function unreadNotificationCount(): int
+    {
+        return auth()->user()?->unreadNotifications()->count() ?? 0;
+    }
+
+    public function openNotification(string $id): void
+    {
+        $notification = auth()->user()?->notifications()->whereKey($id)->first();
+        $notification?->markAsRead();
+
+        $opportunityId = $notification?->data['opportunity_id'] ?? null;
+
+        if ($opportunityId !== null) {
+            $this->activeOpportunityId = $opportunityId;
+            $this->creatingOpportunity = false;
+        }
+
+        $this->showNotifications = false;
+    }
+
+    public function markAllNotificationsRead(): void
+    {
+        auth()->user()?->unreadNotifications()->update(['read_at' => now()]);
+    }
+
+    public function openOpportunity(int $id): void
+    {
+        $this->activeOpportunityId = $id;
+        $this->creatingOpportunity = false;
+    }
+
+    public function newOpportunity(): void
+    {
+        $this->activeOpportunityId = null;
+        $this->creatingOpportunity = true;
+    }
+
+    #[On('opportunity-modal-closed')]
+    public function closeOpportunityModal(): void
+    {
+        $this->activeOpportunityId = null;
+        $this->creatingOpportunity = false;
+    }
 
     public function openOverlay(string $overlay): void
     {
@@ -205,10 +277,17 @@ class OpportunityBoard extends Component
     {
         $activeTab = $this->activeTab();
 
-        return $this->applyTab($this->filteredQuery(), $activeTab)
-            ->when($this->phaseFilter !== '' && $activeTab !== 'submitted', fn ($q) => $q->where('phase', $this->phaseFilter))
-            ->orderByDesc('go_strength')
-            ->get();
+        $query = $this->applyTab($this->filteredQuery(), $activeTab)
+            ->when($this->phaseFilter !== '' && $activeTab !== 'submitted', fn ($q) => $q->where('phase', $this->phaseFilter));
+
+        // No Bid's row-list sorts newest decision first (tie-broken
+        // alphabetically), overriding the board's usual go_strength order —
+        // matches the reference's dedicated No Bid view.
+        if ($activeTab === 'no_bid') {
+            return $query->orderByRaw('COALESCE(decision_date, date_added) DESC')->orderBy('name')->get();
+        }
+
+        return $query->orderByDesc('go_strength')->get();
     }
 
     /**

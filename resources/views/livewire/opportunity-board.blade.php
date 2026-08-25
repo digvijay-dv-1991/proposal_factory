@@ -26,8 +26,35 @@
                     <span>Due &lt;14 Days</span>
                 </div>
             </div>
-            <button type="button" class="new-opportunity-top" disabled title="Coming in Day 3 with the opportunity detail modal">
-                + New Opportunity
+            @auth
+                <div class="notification-bell" x-data x-on:click.outside="$wire.showNotifications && $wire.toggleNotifications()">
+                    <button type="button" class="bell-btn" wire:click="toggleNotifications">
+                        &#128276;
+                        @if ($this->unreadNotificationCount() > 0)
+                            <span class="bell-count">{{ $this->unreadNotificationCount() }}</span>
+                        @endif
+                    </button>
+                    @if ($showNotifications)
+                        <div class="notification-dropdown">
+                            <div class="notification-dropdown-head">
+                                <strong>Notifications</strong>
+                                <button type="button" class="btn" wire:click="markAllNotificationsRead">Mark all read</button>
+                            </div>
+                            @forelse ($this->notifications() as $notification)
+                                <button type="button" class="notification-item {{ $notification->read_at ? '' : 'unread' }}" wire:click="openNotification('{{ $notification->id }}')">
+                                    <div>{{ $notification->data['invited_by'] }} invited you to review <strong>{{ $notification->data['opportunity_name'] }}</strong></div>
+                                    <div class="notification-time">{{ $notification->created_at->diffForHumans() }}</div>
+                                </button>
+                            @empty
+                                <div class="notice">No notifications yet.</div>
+                            @endforelse
+                        </div>
+                    @endif
+                </div>
+            @endauth
+            <button type="button" class="new-opportunity-top" wire:click="newOpportunity" wire:loading.attr="disabled" wire:target="newOpportunity">
+                <span wire:loading.remove wire:target="newOpportunity">+ New Opportunity</span>
+                <span wire:loading wire:target="newOpportunity">Opening&hellip;</span>
             </button>
         </div>
     </header>
@@ -114,7 +141,9 @@
         </div>
     </div>
 
-    @unless ($activeView === 'daily_brief')
+    @php($isRowListTab = in_array($this->activeTab(), ['no_bid', 'submitted'], true))
+
+    @unless ($activeView === 'daily_brief' || $isRowListTab)
         <div class="section-tabs-wrap">
             <div class="section-tabs">
                 @foreach (\App\Livewire\OpportunityBoard::SECTIONS as $section)
@@ -126,7 +155,51 @@
         </div>
     @endunless
 
-    @if ($activeView === 'board')
+    @if ($activeView === 'board' && $isRowListTab)
+        @php($isNoBid = $this->activeTab() === 'no_bid')
+        <div class="board-shell">
+            <div class="submitted-list {{ $isNoBid ? 'nobid-list' : '' }}">
+                <div class="submitted-list-head">
+                    <span>Opportunity</span>
+                    <span>Agency</span>
+                    <span>Solicitation</span>
+                    <span>{{ $isNoBid ? 'No Bid' : 'Submitted' }}</span>
+                    @if ($isNoBid)
+                        <span>Authorized By</span>
+                        <span>Reason</span>
+                    @endif
+                    <span>Source</span>
+                </div>
+
+                @forelse ($this->opportunities() as $opportunity)
+                    <article class="submitted-row {{ $isNoBid ? 'nobid-row' : '' }}" wire:click="openOpportunity({{ $opportunity->id }})" wire:key="row-{{ $opportunity->id }}">
+                        <div>
+                            <div class="row-name">{{ $opportunity->name }}</div>
+                            <div class="row-sub">{{ $opportunity->external_id }}</div>
+                        </div>
+                        <div>{{ $opportunity->agency }}</div>
+                        <div>{{ $opportunity->solicitation ?: '—' }}</div>
+                        @if ($isNoBid)
+                            <div>{{ $opportunity->decision_date?->format('M j, Y') ?? $opportunity->date_added?->format('M j, Y') ?? '—' }}</div>
+                            <div class="nobid-authorized">{{ $opportunity->decision_by ?: 'Not recorded' }}</div>
+                            <div class="nobid-reason">{{ $opportunity->decision_comment ?: 'Not recorded' }}</div>
+                        @else
+                            <div>{{ $opportunity->response_due?->format('M j, Y') ?? $opportunity->date_added?->format('M j, Y') ?? '—' }}</div>
+                        @endif
+                        <div>
+                            @if ($opportunity->source_url)
+                                <a class="source-link" href="{{ $opportunity->source_url }}" target="_blank" rel="noopener noreferrer" x-data x-on:click.stop>&#8599; Source</a>
+                            @else
+                                <span class="source-link disabled">&#8599; Source</span>
+                            @endif
+                        </div>
+                    </article>
+                @empty
+                    <div class="submitted-empty">{{ $isNoBid ? 'No No Bid opportunities.' : 'No submitted opportunities.' }}</div>
+                @endforelse
+            </div>
+        </div>
+    @elseif ($activeView === 'board')
         <div class="board-shell">
             <div class="board {{ $phaseFilter !== '' ? 'phase-filtered' : '' }}">
                 @foreach ($this->board() as $phase => $column)
@@ -191,5 +264,9 @@
                 </div>
             </div>
         </div>
+    @endif
+
+    @if ($activeOpportunityId !== null || $creatingOpportunity)
+        <livewire:opportunity-modal :opportunity-id="$activeOpportunityId" :key="'opportunity-modal-'.($activeOpportunityId ?? 'new')" />
     @endif
 </div>

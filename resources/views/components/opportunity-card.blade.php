@@ -4,7 +4,12 @@
     class="opp-card {{ $opportunity->strength_class }} {{ $opportunity->has_required_source ? '' : 'source-missing-card' }}"
     data-id="{{ $opportunity->external_id }}"
     data-decision="{{ $opportunity->decision }}"
+    wire:click="openOpportunity({{ $opportunity->id }})"
+    wire:loading.class="opp-card-loading"
+    wire:target="openOpportunity({{ $opportunity->id }})"
 >
+    <div class="card-loading-spinner" wire:loading wire:target="openOpportunity({{ $opportunity->id }})"></div>
+
     <div class="card-top">
         <div class="card-mission-block">
             <span class="card-mission">{{ $opportunity->origin ?: 'MISC' }}</span>
@@ -41,7 +46,7 @@
 
     <div class="card-source-row">
         @if ($opportunity->source_url)
-            <a class="source-link card-source" href="{{ $opportunity->source_url }}" target="_blank" rel="noopener noreferrer">
+            <a class="source-link card-source" href="{{ $opportunity->source_url }}" target="_blank" rel="noopener noreferrer" x-data x-on:click.stop>
                 &#8599; Open Source
             </a>
         @else
