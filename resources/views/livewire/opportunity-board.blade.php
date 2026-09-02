@@ -2,7 +2,8 @@
     <header class="masthead">
         <div class="brand-row">
             <div class="brand">
-                <h1 class="brand-title">ALQIMI</h1>
+                <x-brand-mark :size="30" />
+                <span class="brand-tag">Capture Deck</span>
             </div>
             <div class="date">{{ now()->format('l, F j, Y') }}</div>
         </div>

@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Database\Factories\OpportunityFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -37,6 +39,9 @@ use Illuminate\Support\Carbon;
  */
 class Opportunity extends Model
 {
+    /** @use HasFactory<OpportunityFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'external_id',
         'name',
@@ -412,6 +417,11 @@ class Opportunity extends Model
     public function decisionHistory(): HasMany
     {
         return $this->hasMany(OpportunityDecisionHistory::class);
+    }
+
+    public function bidAlerts(): HasMany
+    {
+        return $this->hasMany(OpportunityBidAlert::class);
     }
 
     public function relationships(): HasMany

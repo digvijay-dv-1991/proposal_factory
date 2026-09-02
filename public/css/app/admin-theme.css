@@ -1,0 +1,99 @@
+/*
+ * Light theme for the Filament admin panel — matches capture-deck.css's own
+ * visual language (white/off-white chrome, charcoal ink, gold accent bar)
+ * instead of a separate dark aesthetic, since this panel is used by the same
+ * people looking at the opportunity board a click away. Registered via
+ * FilamentAsset::register() in AdminPanelProvider::boot() and published with
+ * `php artisan filament:assets`.
+ */
+
+@import url('https://fonts.bunny.net/css?family=jost:500,600,700&display=swap');
+
+:root {
+    --fadmin-charcoal: #2d2e30;
+    --fadmin-gold: #e6d11c;
+    --fadmin-line: #dee0e2;
+}
+
+/* Topbar — same signature as .masthead: white, 4px gold bottom border */
+
+.fi-topbar > nav.fi-topbar {
+    background: #fff;
+    border-bottom: 4px solid var(--fadmin-gold);
+    box-shadow: inset 0 -1px 0 rgba(38, 38, 38, .08);
+}
+
+/* Sidebar — a hair off white so it reads as a distinct panel next to the
+   white page content, matching how .directory-view separates from .app. */
+
+.fi-main-sidebar {
+    background: #fbfbfb;
+    border-inline-end: 1px solid var(--fadmin-line);
+}
+
+.fi-sidebar-header {
+    border-bottom: 1px solid var(--fadmin-line);
+}
+
+/* Brand logo (mark only, sized up in AdminPanelProvider::brandLogoHeight so
+   it carries the header on its own instead of sitting next to a wordmark). */
+
+.fi-brand-logo-ctn {
+    display: flex;
+    align-items: center;
+}
+
+/* Nav items — a solid charcoal pill for the active item instead of Filament's
+   default subtle tint, matching .view-tabs button.active elsewhere. Inactive
+   items get an explicit darker label/icon color: Filament's default gray-500
+   text color is calibrated for Tailwind's gray scale, and the brand gray
+   ramp registered in AdminPanelProvider is lighter than that at the same
+   step, which read as washed-out/low-contrast against the white sidebar. */
+
+.fi-sidebar-item-btn {
+    border-radius: 8px;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.fi-sidebar-item:not(.fi-active) > .fi-sidebar-item-btn {
+    color: #454749;
+}
+
+.fi-sidebar-item:not(.fi-active) > .fi-sidebar-item-btn .fi-sidebar-item-icon {
+    color: #5e6164;
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    background: var(--fadmin-charcoal) !important;
+    color: #fff !important;
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-icon {
+    color: #fff !important;
+}
+
+.fi-sidebar-item:not(.fi-active) > .fi-sidebar-item-btn:hover {
+    background: #f3f3f3;
+}
+
+/* Click / interaction feedback, matching .btn:active elsewhere in the app */
+
+.fi-btn {
+    transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fi-btn:active {
+    transform: translateY(1px);
+}
+
+.fi-input,
+.fi-select-input {
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Table/section cards — same soft shadow language as .directory-card */
+
+.fi-section,
+.fi-ta-ctn {
+    box-shadow: 0 4px 14px rgba(40, 40, 40, .05);
+}

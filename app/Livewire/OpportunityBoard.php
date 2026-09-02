@@ -11,6 +11,7 @@ use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Layout('layouts.capture-deck')]
@@ -103,8 +104,12 @@ class OpportunityBoard extends Component
     /**
      * The opportunity currently open in the detail modal, or null when it's
      * closed. Editing an existing card sets this; "+ New Opportunity" opens
-     * the same modal with $creatingOpportunity instead.
+     * the same modal with $creatingOpportunity instead. Synced to the
+     * ?opportunity= query string so emailed reminder links
+     * (route('opportunities.index', ['opportunity' => $id])) open straight
+     * into the right opportunity.
      */
+    #[Url(as: 'opportunity')]
     public ?int $activeOpportunityId = null;
 
     public bool $creatingOpportunity = false;

@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use App\Notifications\LoginOtpCode;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Volt\Volt;
 
 test('login screen can be rendered', function () {
@@ -11,7 +13,9 @@ test('login screen can be rendered', function () {
         ->assertSeeVolt('pages.auth.login');
 });
 
-test('users can authenticate using the login screen', function () {
+test('correct credentials issue an OTP challenge instead of logging in immediately', function () {
+    Notification::fake();
+
     $user = User::factory()->create();
 
     $component = Volt::test('pages.auth.login')
@@ -22,9 +26,11 @@ test('users can authenticate using the login screen', function () {
 
     $component
         ->assertHasNoErrors()
-        ->assertRedirect(route('dashboard', absolute: false));
+        ->assertRedirect(route('login.verify', absolute: false));
 
-    $this->assertAuthenticated();
+    $this->assertGuest();
+
+    Notification::assertSentTo($user, LoginOtpCode::class);
 });
 
 test('users can not authenticate with invalid password', function () {
@@ -48,7 +54,7 @@ test('navigation menu can be rendered', function () {
 
     $this->actingAs($user);
 
-    $response = $this->get('/dashboard');
+    $response = $this->get('/profile');
 
     $response
         ->assertOk()
