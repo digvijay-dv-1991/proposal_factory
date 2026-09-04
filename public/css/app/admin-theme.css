@@ -97,3 +97,22 @@
 .fi-ta-ctn {
     box-shadow: 0 4px 14px rgba(40, 40, 40, .05);
 }
+
+/* Dashboard chart widgets (Decision mix / Pipeline by phase / New
+   opportunities trend). Filament's own $maxHeight widget property only
+   puts a `max-height` on the <canvas> — it never gives the wrapping frame
+   div a definite `height`. That's harmless for a chart alone in its row,
+   but when two charts share a dashboard row and the grid's default
+   align-items: stretch makes both card stretch to match the taller one,
+   Chart.js's maintainAspectRatio: false has no definite height to resize
+   the shorter chart's canvas into, so it renders at its own natural size
+   and leaves the rest of the stretched card blank. Forcing both the frame
+   and the canvas to the same explicit height removes that ambiguity
+   outright, so paired charts always fill their card edge to edge. */
+.fi-wi-chart-frame {
+    height: 260px;
+}
+
+.fi-wi-chart-canvas-ctn canvas {
+    height: 260px !important;
+}
