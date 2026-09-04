@@ -50,7 +50,6 @@ new #[Layout('layouts.auth-guest')] class extends Component
 
             $this->redirectIntended(
                 default: $user->hasRole('Admin') ? '/admin' : route('opportunities.index', absolute: false),
-                navigate: true,
             );
 
             return;
