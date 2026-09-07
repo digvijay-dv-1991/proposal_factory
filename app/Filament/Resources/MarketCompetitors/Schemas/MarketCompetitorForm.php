@@ -13,6 +13,7 @@ class MarketCompetitorForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(1)
             ->components([
                 Section::make('Competitor')
                     ->icon(Heroicon::OutlinedFlag)
@@ -36,33 +37,37 @@ class MarketCompetitorForm
                 Section::make('Positioning')
                     ->description('What each side offers and how ALQIMI should play against this competitor.')
                     ->icon(Heroicon::OutlinedScale)
-                    ->columns(2)
+                    ->columns(1)
                     ->components([
                         Textarea::make('alqimi_products')
                             ->label('ALQIMI products')
                             ->required()
+                            ->autosize()
                             ->rows(3),
                         Textarea::make('competitor_offering')
                             ->label('Their offering')
                             ->required()
+                            ->autosize()
                             ->rows(3),
                         Textarea::make('overlap')
                             ->required()
-                            ->rows(2)
-                            ->columnSpanFull(),
+                            ->autosize()
+                            ->rows(3),
                         Textarea::make('alqimi_advantage')
                             ->label('Our advantage')
                             ->required()
+                            ->autosize()
                             ->rows(3),
                         Textarea::make('competitor_advantage')
                             ->label('Their advantage')
                             ->required()
+                            ->autosize()
                             ->rows(3),
                         Textarea::make('strategy')
                             ->label('Play against them')
                             ->required()
-                            ->rows(3)
-                            ->columnSpanFull(),
+                            ->autosize()
+                            ->rows(3),
                     ]),
             ]);
     }

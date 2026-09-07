@@ -19,7 +19,7 @@
             <div class="brief-meta">
                 <span>Strategic vehicle update</span>
                 <span>Company announcement</span>
-                <span>Cross-cutting relevance: Modernization, Intelligence, Health, CBRN</span>
+                <span>Cross-cutting relevance: DFaaS, Intelligence, Health, CBRN</span>
             </div>
         </article>
 

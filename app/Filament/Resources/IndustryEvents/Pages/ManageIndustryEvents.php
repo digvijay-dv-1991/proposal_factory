@@ -5,6 +5,7 @@ namespace App\Filament\Resources\IndustryEvents\Pages;
 use App\Filament\Resources\IndustryEvents\IndustryEventResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
+use Filament\Support\Enums\Width;
 
 class ManageIndustryEvents extends ManageRecords
 {
@@ -13,7 +14,7 @@ class ManageIndustryEvents extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()->slideOver(),
+            CreateAction::make()->slideOver()->modalWidth(Width::FiveExtraLarge),
         ];
     }
 }

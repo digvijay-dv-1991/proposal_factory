@@ -17,7 +17,7 @@ class DailyBrief extends Component
      *
      * @var array<int, string>
      */
-    private const SECTIONS = ['CBRN', 'FOCI', 'Modernization', 'DoD Intelligence - Ops', 'Health', 'Digitization', 'General'];
+    private const SECTIONS = ['CBRN', 'FOCI', 'DFaaS', 'DoD Intelligence - Ops', 'Health', 'Digitization', 'General'];
 
     /**
      * @return EloquentCollection<int, Opportunity>

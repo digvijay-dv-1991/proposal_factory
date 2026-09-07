@@ -13,6 +13,7 @@ class MarketPartnerForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(1)
             ->components([
                 Section::make('Partner')
                     ->icon(Heroicon::OutlinedUserGroup)
@@ -36,28 +37,32 @@ class MarketPartnerForm
                 Section::make('Partnership')
                     ->description('What they bring, how it fits our clients, and where teaming makes sense.')
                     ->icon(Heroicon::OutlinedPuzzlePiece)
-                    ->columns(2)
+                    ->columns(1)
                     ->components([
                         Textarea::make('what_they_do')
                             ->label('What they do')
                             ->required()
+                            ->autosize()
                             ->rows(3),
                         Textarea::make('client_alignment')
                             ->label('Client alignment')
                             ->required()
+                            ->autosize()
                             ->rows(3),
                         Textarea::make('product_areas')
                             ->label('Product areas')
                             ->required()
-                            ->rows(2)
-                            ->columnSpanFull(),
+                            ->autosize()
+                            ->rows(3),
                         Textarea::make('partnership_value')
                             ->label('Partnership value')
                             ->required()
+                            ->autosize()
                             ->rows(3),
                         Textarea::make('use_together')
                             ->label('How we use them together')
                             ->required()
+                            ->autosize()
                             ->rows(3),
                     ]),
             ]);

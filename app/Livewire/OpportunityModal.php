@@ -47,7 +47,7 @@ class OpportunityModal extends Component
         'Contracting Officers',
     ];
 
-    public const DECISIONS = ['Pending', 'More Info', 'Monitoring', 'Bid', 'No Bid'];
+    public const DECISIONS = ['Pending', 'More Info', 'Monitoring', 'Shape', 'Bid', 'No Bid'];
 
     public const COMPETITIVE_POSITIONS = ['Strong', 'Moderate', 'Weak', 'Unknown'];
 

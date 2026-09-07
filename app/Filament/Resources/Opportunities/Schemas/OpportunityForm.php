@@ -7,12 +7,9 @@ use App\Livewire\OpportunityModal;
 use App\Models\ContractVehicle;
 use App\Models\Opportunity;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -23,10 +20,8 @@ use Filament\Support\Icons\Heroicon;
 class OpportunityForm
 {
     /**
-     * All 6 values the `decision` DB enum actually holds, including
-     * "Shape" (added in migration 2026_09_02_105925 — not yet reflected in
-     * OpportunityModal::DECISIONS on the public board, a separately tracked
-     * gap). The admin form must offer every value the column allows.
+     * All 6 values the `decision` DB enum actually holds — matches
+     * OpportunityModal::DECISIONS on the public board.
      *
      * @var array<string, string>
      */
@@ -73,6 +68,7 @@ class OpportunityForm
     {
         return Tab::make('Overview')
             ->icon(Heroicon::OutlinedBriefcase)
+            ->columns(1)
             ->components([
                 Section::make('Identity')
                     ->columns(3)
@@ -128,19 +124,11 @@ class OpportunityForm
                     ->components([
                         DatePicker::make('date_added')->default(now())->native(false),
                         DatePicker::make('response_due')->native(false),
-                        TextInput::make('response_time')
-                            ->helperText('e.g. "2:00 PM ET"'),
-                        DatePicker::make('release_date')->native(false),
-                        DateTimePicker::make('discovered_at')->native(false),
-                        DatePicker::make('monitoring_last_checked')->native(false),
                         TextInput::make('link')
                             ->label('Official source URL')
                             ->url()
                             ->prefixIcon(Heroicon::OutlinedLink)
                             ->columnSpan(2),
-                        Toggle::make('source_title_verified')
-                            ->label('Source title verified')
-                            ->inline(false),
                         TextInput::make('govwin_link')
                             ->label('GovWin reference URL')
                             ->url()
@@ -148,18 +136,16 @@ class OpportunityForm
                             ->columnSpanFull(),
                     ]),
                 Section::make('Summary')
+                    ->columns(1)
                     ->components([
-                        Textarea::make('description')->rows(3),
-                        Textarea::make('scope')->rows(3),
                         Textarea::make('source_description')
                             ->label('Source description')
+                            ->autosize()
                             ->rows(3),
                         Textarea::make('source_requirements')
                             ->label('Source requirements')
+                            ->autosize()
                             ->rows(3),
-                        Textarea::make('source_verification')
-                            ->label('Source verification notes')
-                            ->rows(2),
                     ]),
             ]);
     }
@@ -168,6 +154,7 @@ class OpportunityForm
     {
         return Tab::make('Decision')
             ->icon(Heroicon::OutlinedFlag)
+            ->columns(1)
             ->components([
                 Section::make('Bid decision')
                     ->description('Choosing Bid or No Bid requires who ordered it and a reason — same rule the public board enforces. Prefer the "Change Decision" button above the table for a one-click version of this.')
@@ -195,6 +182,7 @@ class OpportunityForm
                             ->visible(fn (Get $get): bool => self::requiresReason($get('decision'))),
                         Textarea::make('decision_comment')
                             ->label('Reason')
+                            ->autosize()
                             ->rows(3)
                             ->columnSpanFull()
                             ->visible(fn (Get $get): bool => self::requiresReason($get('decision')))
@@ -211,13 +199,6 @@ class OpportunityForm
                             ->maxValue(100)
                             ->default(0)
                             ->required(),
-                        TextInput::make('go_strength')
-                            ->label('Bid strength score')
-                            ->numeric()
-                            ->suffix('/ 100')
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->default(0),
                     ]),
             ]);
     }
@@ -226,29 +207,22 @@ class OpportunityForm
     {
         return Tab::make('Capture & Ownership')
             ->icon(Heroicon::OutlinedUserGroup)
+            ->columns(1)
             ->components([
                 Section::make('Ownership')
                     ->columns(3)
                     ->components([
                         TextInput::make('alqimi_sme')
                             ->label('ALQIMI SME'),
-                        TextInput::make('capture_owner'),
-                        TextInput::make('proposal_manager'),
                     ]),
                 Section::make('Next action')
-                    ->columns(3)
+                    ->columns(2)
                     ->components([
                         Textarea::make('next_action')
-                            ->rows(2)
-                            ->columnSpan(2),
+                            ->autosize()
+                            ->rows(3)
+                            ->columnSpanFull(),
                         DatePicker::make('action_due')->native(false),
-                    ]),
-                Section::make('Tags')
-                    ->columns(3)
-                    ->components([
-                        TagsInput::make('focus')->placeholder('Add a focus area'),
-                        TagsInput::make('keywords')->placeholder('Add a keyword'),
-                        TagsInput::make('capture_plan')->placeholder('Add a capture step'),
                     ]),
             ]);
     }
@@ -257,6 +231,7 @@ class OpportunityForm
     {
         return Tab::make('Gap Analysis')
             ->icon(Heroicon::OutlinedShieldExclamation)
+            ->columns(1)
             ->components([
                 Section::make()
                     ->columns(2)
@@ -268,10 +243,12 @@ class OpportunityForm
                         TextInput::make('gap_owner'),
                         Textarea::make('gap')
                             ->label('Gap')
+                            ->autosize()
                             ->rows(3)
                             ->columnSpanFull(),
                         Textarea::make('gap_mitigation')
                             ->label('Mitigation plan')
+                            ->autosize()
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
@@ -282,6 +259,7 @@ class OpportunityForm
     {
         return Tab::make('Competitive & Incumbent')
             ->icon(Heroicon::OutlinedScale)
+            ->columns(1)
             ->components([
                 Section::make('Competitive landscape')
                     ->columns(2)
@@ -293,15 +271,19 @@ class OpportunityForm
                         TextInput::make('competitive_next_action'),
                         Textarea::make('competitors')
                             ->helperText('One per line, or separated by ";" / ",".')
+                            ->autosize()
                             ->rows(2)
                             ->columnSpanFull(),
                         Textarea::make('competitive_analysis')
+                            ->autosize()
                             ->rows(3)
                             ->columnSpanFull(),
                         Textarea::make('competitive_discriminators')
+                            ->autosize()
                             ->rows(3)
                             ->columnSpanFull(),
                         Textarea::make('teaming')
+                            ->autosize()
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
@@ -321,15 +303,21 @@ class OpportunityForm
                             ->prefixIcon(Heroicon::OutlinedLink)
                             ->columnSpanFull(),
                         Textarea::make('incumbent_brief')
+                            ->autosize()
                             ->rows(3)
                             ->columnSpanFull(),
                         Textarea::make('incumbent_performance')
+                            ->autosize()
                             ->rows(3)
                             ->columnSpanFull(),
                         Textarea::make('incumbent_strengths')
-                            ->rows(3),
+                            ->autosize()
+                            ->rows(3)
+                            ->columnSpanFull(),
                         Textarea::make('incumbent_weaknesses')
-                            ->rows(3),
+                            ->autosize()
+                            ->rows(3)
+                            ->columnSpanFull(),
                     ]),
             ]);
     }
@@ -338,20 +326,21 @@ class OpportunityForm
     {
         return Tab::make('RFP & Evaluation')
             ->icon(Heroicon::OutlinedClipboardDocumentList)
+            ->columns(1)
             ->components([
                 Section::make()
-                    ->columns(2)
+                    ->columns(1)
                     ->components([
                         TextInput::make('rfp_format'),
                         Textarea::make('rfp_instructions')
-                            ->rows(3)
-                            ->columnSpanFull(),
+                            ->autosize()
+                            ->rows(3),
                         Textarea::make('rfp_sections')
-                            ->rows(3)
-                            ->columnSpanFull(),
+                            ->autosize()
+                            ->rows(3),
                         Textarea::make('evaluation_factors')
-                            ->rows(3)
-                            ->columnSpanFull(),
+                            ->autosize()
+                            ->rows(3),
                     ]),
             ]);
     }
@@ -360,14 +349,16 @@ class OpportunityForm
     {
         return Tab::make('AI Insights')
             ->icon(Heroicon::OutlinedSparkles)
+            ->columns(1)
             ->components([
                 Section::make('Generated analysis')
                     ->description('Read-only — populated by the AI analysis job once that phase is enabled. Nothing here is editable by hand.')
+                    ->columns(1)
                     ->components([
-                        Textarea::make('ai_executive_summary')->rows(3)->disabled(),
-                        Textarea::make('ai_why_it_matters')->rows(3)->disabled(),
-                        Textarea::make('ai_red_team_critique')->rows(3)->disabled(),
-                        Textarea::make('ai_competitive_outlook')->rows(3)->disabled(),
+                        Textarea::make('ai_executive_summary')->autosize()->rows(3)->disabled(),
+                        Textarea::make('ai_why_it_matters')->autosize()->rows(3)->disabled(),
+                        Textarea::make('ai_red_team_critique')->autosize()->rows(3)->disabled(),
+                        Textarea::make('ai_competitive_outlook')->autosize()->rows(3)->disabled(),
                     ]),
             ]);
     }

@@ -29,6 +29,7 @@ class IndustryEventForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(1)
             ->components([
                 Section::make('Event')
                     ->icon(Heroicon::OutlinedCalendarDays)
@@ -73,7 +74,8 @@ class IndustryEventForm
                     ->components([
                         Textarea::make('summary')
                             ->required()
-                            ->rows(3)
+                            ->autosize()
+                            ->rows(4)
                             ->columnSpanFull(),
                         TextInput::make('url')
                             ->label('Event URL')

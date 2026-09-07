@@ -14,6 +14,7 @@ class ContractVehicleForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(1)
             ->components([
                 Section::make('Vehicle')
                     ->description('The core identity of this contract vehicle — how it shows up across the app.')
@@ -48,12 +49,14 @@ class ContractVehicleForm
                     ->components([
                         Textarea::make('description')
                             ->required()
-                            ->rows(3)
+                            ->autosize()
+                            ->rows(4)
                             ->columnSpanFull(),
                         Textarea::make('alqimi_use')
                             ->label('ALQIMI use')
                             ->helperText('How ALQIMI actually uses this vehicle today, if at all.')
-                            ->rows(3)
+                            ->autosize()
+                            ->rows(4)
                             ->columnSpanFull(),
                         TextInput::make('url')
                             ->label('Reference URL')

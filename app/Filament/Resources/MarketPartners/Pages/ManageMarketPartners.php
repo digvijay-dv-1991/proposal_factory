@@ -5,6 +5,7 @@ namespace App\Filament\Resources\MarketPartners\Pages;
 use App\Filament\Resources\MarketPartners\MarketPartnerResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
+use Filament\Support\Enums\Width;
 
 class ManageMarketPartners extends ManageRecords
 {
@@ -13,7 +14,7 @@ class ManageMarketPartners extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()->slideOver(),
+            CreateAction::make()->slideOver()->modalWidth(Width::FiveExtraLarge),
         ];
     }
 }

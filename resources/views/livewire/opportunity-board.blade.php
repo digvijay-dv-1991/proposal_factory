@@ -79,7 +79,7 @@
             </select>
             <select wire:model.live="decisionFilter">
                 <option value="">All Decisions</option>
-                @foreach (['Pending', 'More Info', 'Monitoring', 'Bid', 'No Bid'] as $decision)
+                @foreach (\App\Livewire\OpportunityModal::DECISIONS as $decision)
                     <option value="{{ $decision }}">{{ $decision }}</option>
                 @endforeach
             </select>

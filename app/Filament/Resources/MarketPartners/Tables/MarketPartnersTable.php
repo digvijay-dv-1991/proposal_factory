@@ -9,6 +9,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Support\Enums\TextSize;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -53,7 +54,7 @@ class MarketPartnersTable
                     ->color('gray')
                     ->url(fn (MarketPartner $record): string => $record->url)
                     ->openUrlInNewTab(),
-                EditAction::make()->slideOver(),
+                EditAction::make()->slideOver()->modalWidth(Width::FiveExtraLarge),
                 DeleteAction::make(),
             ])
             ->toolbarActions([

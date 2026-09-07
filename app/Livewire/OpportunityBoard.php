@@ -33,7 +33,7 @@ class OpportunityBoard extends Component
     ];
 
     public const SECTIONS = [
-        'CBRN', 'Digitization', 'DoD Intelligence - Ops', 'FOCI', 'General', 'Health', 'Modernization', 'MISC',
+        'CBRN', 'Digitization', 'DoD Intelligence - Ops', 'FOCI', 'General', 'Health', 'DFaaS', 'MISC',
     ];
 
     public const FIT_LEVELS = ['Strong', 'Moderate', 'No Fit'];
