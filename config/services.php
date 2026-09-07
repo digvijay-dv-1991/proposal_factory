@@ -14,6 +14,13 @@ return [
     |
     */
 
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+        // Must support the Responses API's hosted web_search tool for the
+        // Competitive Analysis research call.
+        'model' => env('OPENAI_MODEL', 'gpt-4.1'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

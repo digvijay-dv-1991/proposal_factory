@@ -143,7 +143,7 @@
     "product_alignment": null,
     "alqimi_sme": null,
     "section_rationale": null,
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Modernization",
       "DoD Intelligence & Ops",
@@ -259,7 +259,7 @@
     "product_alignment": null,
     "alqimi_sme": null,
     "section_rationale": null,
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Modernization",
       "Cybersecurity",
@@ -386,7 +386,7 @@
     "product_alignment": null,
     "alqimi_sme": null,
     "section_rationale": null,
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Modernization",
       "Enterprise Data Management",
@@ -2319,7 +2319,7 @@
     "product_alignment": "AOSEN/DataFabric aligns to ingestion, normalization, metadata, cataloging, governance, APIs, batch and streaming exchange, RBAC/ABAC/FGAC, auditability, analytics, AI/ML enablement, dashboards, and secure collaboration. AOSEN IQ can support natural-language discovery and summarization where approved.",
     "alqimi_sme": null,
     "section_rationale": "Modernization is the primary section because the core requirement is a cloud data-sharing platform. CBRN is a relevant focus area because screening-system and detection data may support homeland-security threat detection and test missions.",
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Data Management",
       "AI & Advanced Analytics",
@@ -2602,7 +2602,7 @@
     "product_alignment": "AOSEN aligns to enterprise data integration, governance, metadata, APIs, workflow automation, analytics, and secure interoperability. AOSEN IQ aligns to AI-assisted search, summarization, extraction, knowledge discovery, and mission-tailored LLM workflows. The response should explain how these capabilities help the agency establish and execute an enterprise AI operating model, not simply list product features.",
     "alqimi_sme": null,
     "section_rationale": "Modernization is the correct primary section because the apparent requirement combines enterprise AI strategy, data management, platform architecture, governance, cybersecurity, and implementation of a scalable operational environment.",
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "AI & Advanced Analytics",
       "Cybersecurity",
@@ -2747,7 +2747,7 @@
     "product_alignment": "AOSEN aligns to enterprise data integration, knowledge services, workflow automation, metadata, APIs, dashboards, analytics, and measurement. AOSEN IQ can support search, summarization, content generation assistance, FAQ and job-aid discovery, feedback synthesis, and sentiment analysis. ALQIMI should present these capabilities only in direct support of Coast Guard workforce adoption, not as a general software showcase.",
     "alqimi_sme": null,
     "section_rationale": "Modernization is the correct primary section because the Government is seeking enterprise digital-transformation adoption, workforce enablement, knowledge management, measurement, and repeatable modernization practices.",
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "AI & Advanced Analytics",
       "DoD Intelligence & Ops",
@@ -3125,7 +3125,7 @@
     "product_alignment": "Possible AOSEN or DataFabric contribution for data integration, interoperability, governance, and analytics, subject to validation against the official scope. No standalone COTS thesis is established from the current information.",
     "alqimi_sme": null,
     "section_rationale": "Modernization is the most appropriate mission section because the available description centers on application integration and lifecycle support for CBP border-enforcement systems.",
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Modernization",
       "Enterprise Data Management"
@@ -3824,7 +3824,7 @@
     "product_alignment": null,
     "alqimi_sme": null,
     "section_rationale": null,
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Modernization",
       "DoD Intelligence & Ops",
@@ -4393,7 +4393,7 @@
     "product_alignment": null,
     "alqimi_sme": null,
     "section_rationale": null,
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Modernization",
       "Cybersecurity",
@@ -4627,7 +4627,7 @@
     "product_alignment": null,
     "alqimi_sme": null,
     "section_rationale": null,
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "AI & Advanced Analytics",
       "Enterprise Modernization",
@@ -5085,7 +5085,7 @@
     "product_alignment": null,
     "alqimi_sme": null,
     "section_rationale": null,
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "AI & Advanced Analytics",
       "Enterprise Data Management",
@@ -5439,7 +5439,7 @@
     "product_alignment": null,
     "alqimi_sme": null,
     "section_rationale": null,
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Modernization",
       "Cybersecurity",
@@ -5808,7 +5808,7 @@
     "product_alignment": null,
     "alqimi_sme": null,
     "section_rationale": null,
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Modernization",
       "Cloud",
@@ -6296,7 +6296,7 @@
     "product_alignment": "Initial capture assessment: AOSEN/DataFabric, FORGE, MODA, AOSEN IQ, and ALQIMI services can support data integration, governed data services, analytics, AI-enabled workflows, automation, and modernization. The proposal must nevertheless conform to the Government-designated Microsoft Fabric, Power BI, Purview, and Entra ID environment rather than substitute an alternate platform.",
     "alqimi_sme": null,
     "section_rationale": "Modernization is the primary section because the requirement is an enterprise data, analytics, AI, governance, SIS, and workforce-modernization IDIQ centered on Microsoft Fabric and related Microsoft services.",
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Modernization",
       "Enterprise Data Management",
@@ -6949,7 +6949,7 @@
     "product_alignment": "RHINO AI; AOSEN; Project INSIGHTS; AOSEN IQ",
     "alqimi_sme": "Josh; Aaron",
     "section_rationale": "BM Review\nThis has a bit of RHINO like transformation element to it. Josh and Aaron would need to take a look.\n\nReviewer(s)\nJosh; Aaron\n\nALQIMI Assessment\nStrong potential fit in the data transformation and AI-enabled document exploitation portions of the requirement. The opportunity involves ingesting large volumes of heterogeneous legacy AEGIS technical information and transforming that information into structured digital engineering artifacts. This aligns with ALQIMI's experience in data ingestion, transformation, integration, knowledge extraction, AI/ML, and modernization of complex legacy information environments. The RHINO comparison is particularly relevant because of the transformation element: taking disparate/unstructured source information and converting it into structured, usable information for downstream systems and workflows.\n\nAssessment\nSTRONG PENDING / QUALIFY\n\nEstimated Fit\n88%",
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Modernization",
       "AI & Advanced Analytics",
@@ -7058,7 +7058,7 @@
     "product_alignment": "AOSEN; AOSEN IQ; Data Fabric as a Service; FORGE ARGUS",
     "alqimi_sme": "Josh",
     "section_rationale": "BM Review\nJosh - please take a look.\n\nReviewer(s)\nJosh\n\nALQIMI Assessment\nExcellent technical alignment with ALQIMI's core data and analytics capabilities. The requirement centers on connecting heterogeneous databases, spreadsheets, cloud and on-premises sources; automating data cleansing and preparation; enabling natural-language analysis; producing interactive dashboards and visualizations; and providing explainable analytical outputs. This maps closely to ALQIMI's enterprise data integration, data engineering, analytics, AI/ML, data-fabric, visualization, and decision-support capabilities. Of the Pending opportunities in this batch, this is one of the cleanest matches to ALQIMI's established technical lane.\n\nAssessment\nHIGH-PRIORITY PENDING / QUALIFY\n\nEstimated Fit\n97%\n\nJosh Goldsberry Review\nInteresting. It's an LLM and conversation chatbot to access all Navy related data. Not sure we are best for this, or why this is a SBIR since there are tools out from the big boys that could do this at scale today. We could take a swag at it though, would be fascinating.",
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "Enterprise Data Management",
       "AI & Advanced Analytics",
@@ -7666,7 +7666,7 @@
     "product_alignment": "AOSEN IQ; RHINO AI; AOSEN",
     "alqimi_sme": "Josh Goldsberry",
     "section_rationale": "BM Review\nJosh, please take a look.\n\nReviewer(s)\nJosh\n\nALQIMI Assessment\nPotential alignment exists around AI/ML, workflow automation, orchestration, data integration, and incorporating intelligent capabilities into scientific and engineering workflows. The opportunity is relevant to ALQIMI's broader AI and automation positioning, but the underlying technical objective appears more research-intensive than a conventional enterprise AI/integration effort. DARPA is looking at automated algorithm discovery integrated directly into scientific and engineering workflows. The key question is whether ALQIMI has sufficiently relevant algorithm-discovery R&D and technical evidence, rather than simply the ability to integrate or orchestrate AI models.\n\nAssessment\nPENDING / QUALIFY / TEAM\n\nEstimated Fit\n80%\n\nCapture Comment\nBrian Miloski: Partner with Aeris",
-    "origin": "Modernization",
+    "origin": "DFaaS",
     "focus": [
       "AI & Advanced Analytics",
       "Enterprise Modernization",

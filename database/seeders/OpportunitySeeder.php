@@ -57,6 +57,12 @@ class OpportunitySeeder extends Seeder
             $attachments = $record['attachments'] ?? [];
             unset($record['attachments']);
 
+            // Section Strategy was dropped (see the schema migration that
+            // removed these two columns) but the source JSON still carries
+            // them — strip so create() doesn't try to insert into columns
+            // that no longer exist.
+            unset($record['product_alignment'], $record['section_rationale']);
+
             $opportunity = Opportunity::create($record);
 
             foreach (self::CHILD_RELATIONS as $jsonKey => $relation) {
