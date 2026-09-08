@@ -2,12 +2,12 @@
 
 namespace App\Notifications;
 
+use App\Filament\Resources\Opportunities\OpportunityResource;
 use App\Models\Opportunity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Route;
 
 class BidDueDateReminder extends Notification implements ShouldQueue
 {
@@ -32,9 +32,11 @@ class BidDueDateReminder extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $due = $this->formattedDueDate();
-        $url = Route::has('opportunities.index')
-            ? route('opportunities.index', ['opportunity' => $this->opportunity->id])
-            : url('/opportunities');
+
+        // Recipients are always Admins (BidAlertService::recipients()), and the admin
+        // panel is where the "Change Decision" quick action lives, so the email opens
+        // straight into the admin view rather than the front-end board.
+        $url = OpportunityResource::getUrl('view', ['record' => $this->opportunity->id]);
 
         return (new MailMessage)
             ->subject($this->subject())

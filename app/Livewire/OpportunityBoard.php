@@ -136,25 +136,40 @@ class OpportunityBoard extends Component
         return auth()->user()?->unreadNotifications()->count() ?? 0;
     }
 
+    /**
+     * Every notification we send (front-end invites, admin-only bid
+     * reminders) is built through Filament's fluent Notification API so it
+     * renders in both the front-end bell here and the admin panel's bell —
+     * clicking one just follows its own action link, wherever that points.
+     */
     public function openNotification(string $id): void
     {
         $notification = auth()->user()?->notifications()->whereKey($id)->first();
         $notification?->markAsRead();
 
-        $opportunityId = $notification?->data['opportunity_id'] ?? null;
-
-        if ($opportunityId !== null) {
-            $this->activeOpportunityId = $opportunityId;
-            $this->creatingOpportunity = false;
-        }
+        $url = $notification?->data['actions'][0]['url'] ?? null;
 
         $this->showNotifications = false;
+
+        if ($url !== null) {
+            $this->redirect($url);
+        }
     }
 
     public function markAllNotificationsRead(): void
     {
         auth()->user()?->unreadNotifications()->update(['read_at' => now()]);
     }
+
+    /**
+     * Live-refresh hook for the socket-pushed notification event (see
+     * resources/js/app.js's Echo listener) — #[Computed] properties are
+     * memoized only per-request, so the empty handler alone is enough to
+     * force notifications()/unreadNotificationCount() to re-read fresh on
+     * this round trip.
+     */
+    #[On('notifications-updated')]
+    public function refreshNotifications(): void {}
 
     public function openOpportunity(int $id): void
     {
@@ -183,6 +198,17 @@ class OpportunityBoard extends Component
     public function closeOverlay(): void
     {
         $this->activeOverlay = '';
+    }
+
+    public function overlayTitle(): string
+    {
+        return match ($this->activeOverlay) {
+            'contract_vehicles' => 'Contract Vehicles',
+            'competitors' => 'Competitors',
+            'partners' => 'Teaming Network',
+            'suggestions' => 'Suggestions',
+            default => '',
+        };
     }
 
     public function showDailyBrief(): void
@@ -259,6 +285,20 @@ class OpportunityBoard extends Component
             $this->phaseFilter === 'Submitted' && $this->decisionFilter === '' => 'submitted',
             default => 'pipeline',
         };
+    }
+
+    /**
+     * Whether the active tab renders as a flat row list (No Bid,
+     * Submitted) rather than the phase-column board.
+     */
+    public function isRowListTab(): bool
+    {
+        return in_array($this->activeTab(), ['no_bid', 'submitted'], true);
+    }
+
+    public function isNoBidTab(): bool
+    {
+        return $this->activeTab() === 'no_bid';
     }
 
     /**
@@ -414,6 +454,34 @@ class OpportunityBoard extends Component
         return $this->phaseFilter !== ''
             ? [$this->phaseFilter]
             : array_values(array_diff(self::PHASES, self::HIDDEN_DEFAULT_PHASES));
+    }
+
+    public function visiblePhaseCount(): int
+    {
+        return count($this->visiblePhases());
+    }
+
+    /**
+     * Inline grid-template-columns/min-width style for the unfiltered
+     * board, sized to fit however many phase columns are visible.
+     */
+    public function boardGridStyle(): string
+    {
+        $count = $this->visiblePhaseCount();
+
+        return sprintf(
+            'grid-template-columns: repeat(%d, minmax(245px, 1fr)); min-width: %dpx;',
+            $count,
+            $count * 245 + ($count - 1) * 18
+        );
+    }
+
+    /**
+     * @return array{items: EloquentCollection<int, Opportunity>, total: float}
+     */
+    public function boardColumn(string $phase): array
+    {
+        return $this->board()[$phase];
     }
 
     /**

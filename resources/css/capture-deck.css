@@ -215,6 +215,31 @@ button {
     text-align: center;
 }
 
+.feedback-btn {
+    align-self: center;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 44px;
+    border: 1px solid var(--gold);
+    border-radius: 9px;
+    background: #fff;
+    color: var(--navy);
+    padding: 0 16px;
+    font-weight: 800;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.feedback-btn:hover {
+    background: var(--gold-50);
+}
+
+.feedback-icon {
+    font-size: 15px;
+}
+
 .notification-dropdown {
     position: absolute;
     top: 52px;
@@ -370,10 +395,28 @@ input, select {
     line-height: 1.12;
 }
 
-.view-tabs button[data-view="monitoring"] { background: #f3f3f3; border-color: #cbcbcb; color: #535353; }
+.view-tabs button[data-view="monitoring"] { background: #eef3f8; border-color: #bdcad8; color: #38556f; }
+.view-tabs button[data-view="monitoring"] .bubble { background: #dce6ef; color: #38556f; }
+.view-tabs button[data-view="monitoring"]:hover { border-color: #8fa4b8; }
+
 .view-tabs button[data-view="bid"] { background: #eaf4ec; border-color: #b9d8c2; color: #2f6f45; }
-.view-tabs button[data-view="nobid"] { background: #fbe6e4; border-color: #efb8b2; color: #a5332a; }
-.view-tabs button[data-view="submitted"] { background: #fffef0; border-color: #d9c300; color: #6f6400; }
+.view-tabs button[data-view="bid"] .bubble { background: #d5eadb; color: #2f6f45; }
+.view-tabs button[data-view="bid"]:hover { border-color: #8fb99b; }
+
+.view-tabs button[data-view="no_bid"] { background: #fbe6e4; border-color: #efb8b2; color: #a5332a; }
+.view-tabs button[data-view="no_bid"] .bubble { background: #f6d7d4; color: #a5332a; }
+.view-tabs button[data-view="no_bid"]:hover { border-color: #d8847b; box-shadow: 0 4px 12px rgba(165, 51, 42, .12); }
+
+.view-tabs button[data-view="pending"],
+.view-tabs button[data-view="more_info"] { background: #fff7dc; border-color: #d6a526; color: #7a5600; }
+.view-tabs button[data-view="pending"] .bubble,
+.view-tabs button[data-view="more_info"] .bubble { background: #f6e7ad; color: #7a5600; }
+.view-tabs button[data-view="pending"]:hover,
+.view-tabs button[data-view="more_info"]:hover { border-color: #bd8c12; box-shadow: 0 4px 12px rgba(166, 123, 16, .14); }
+
+.view-tabs button[data-view="submitted"] { background: #f3edfb; border-color: #9a78c7; color: #5f3f86; }
+.view-tabs button[data-view="submitted"] .bubble { background: #e3d8f3; color: #5f3f86; }
+.view-tabs button[data-view="submitted"]:hover { border-color: #7f5caf; box-shadow: 0 4px 12px rgba(95, 63, 134, .14); }
 
 .bubble {
     display: inline-grid;
@@ -2490,6 +2533,304 @@ input, select {
     }
 }
 
+/* Suggestions overlay */
+
+.suggestion-board {
+    padding: 24px;
+}
+
+.suggestion-board-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.suggestion-board-head h3 {
+    margin: 0 0 2px;
+    font-size: 20px;
+    color: var(--ink);
+}
+
+.suggestion-count {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.suggestion-sort {
+    display: flex;
+    gap: 6px;
+}
+
+.suggestion-sort button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.suggestion-sort button.active {
+    border-color: var(--navy);
+    background: var(--navy);
+    color: #fff;
+}
+
+.suggestion-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 16px;
+    background: #f9f9f9;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    margin-bottom: 22px;
+}
+
+.suggestion-form .field {
+    flex: 1 1 100%;
+}
+
+.suggestion-form .field:has(input) {
+    flex: 1 1 clamp(180px, 30%, 320px);
+}
+
+.suggestion-form textarea {
+    min-height: 60px;
+}
+
+.suggestion-post {
+    flex: 0 0 auto;
+    align-self: flex-end;
+    height: 40px;
+    padding: 0 22px;
+}
+
+.suggestion-image-uploading {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+.suggestion-image-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.suggestion-image-preview img {
+    max-width: 140px;
+    max-height: 100px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    object-fit: cover;
+}
+
+.suggestion-image-preview button {
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.suggestion-image {
+    display: block;
+    max-width: 320px;
+    max-height: 220px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    object-fit: cover;
+    margin-top: 10px;
+}
+
+.suggestion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.suggestion-card {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.suggestion-upvote {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 52px;
+    height: 52px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fafafa;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.suggestion-upvote-arrow {
+    font-size: 13px;
+    line-height: 1;
+}
+
+.suggestion-upvote-count {
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.suggestion-upvote.active {
+    border-color: var(--gold);
+    background: var(--gold-50);
+    color: var(--gold-700);
+}
+
+.suggestion-upvote:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.suggestion-upvoters {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.suggestion-upvoter-avatar,
+.suggestion-upvoter-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--navy2);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    border: 2px solid #fff;
+    margin-left: -7px;
+}
+
+.suggestion-upvoter-avatar:first-child {
+    margin-left: 0;
+}
+
+.suggestion-upvoter-more {
+    background: #e2e2e2;
+    color: var(--muted);
+}
+
+.suggestion-card-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.suggestion-card-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.suggestion-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.suggestion-name {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: var(--navy);
+}
+
+.suggestion-time {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.suggestion-title {
+    margin: 0 0 4px;
+    font-size: 14.5px;
+    color: var(--ink);
+}
+
+.suggestion-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.suggestion-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 18px;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+.suggestion-pagination button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.suggestion-pagination button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+@media (max-width: 560px) {
+    .suggestion-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .suggestion-post {
+        width: 100%;
+    }
+
+    .suggestion-board-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
 /* AI generation panels (AI Analysis, Competitive Analysis) */
 
 .ai-generate-panel {
@@ -2565,6 +2906,16 @@ input, select {
     cursor: pointer;
     font-size: 13px;
     color: var(--ink);
+}
+
+/* Long unbroken values (e.g. solicitation numbers with no spaces) must
+   wrap inside their own column instead of overflowing into the next one —
+   grid items default to min-width: auto, which lets content bleed past
+   its track. */
+.submitted-list-head > *,
+.submitted-row > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .submitted-row:hover {

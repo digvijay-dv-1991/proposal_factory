@@ -7,6 +7,7 @@ use App\Filament\Resources\Opportunities\Pages\EditOpportunity;
 use App\Filament\Resources\Opportunities\Pages\ListOpportunities;
 use App\Filament\Resources\Opportunities\Pages\ViewOpportunity;
 use App\Filament\Resources\Opportunities\RelationManagers\AttachmentsRelationManager;
+use App\Filament\Resources\Opportunities\RelationManagers\BidCommentsRelationManager;
 use App\Filament\Resources\Opportunities\RelationManagers\ContactsRelationManager;
 use App\Filament\Resources\Opportunities\RelationManagers\PartnersRelationManager;
 use App\Filament\Resources\Opportunities\RelationManagers\UpdatesRelationManager;
@@ -58,6 +59,7 @@ class OpportunityResource extends Resource
             PartnersRelationManager::class,
             UpdatesRelationManager::class,
             AttachmentsRelationManager::class,
+            BidCommentsRelationManager::class,
         ];
     }
 

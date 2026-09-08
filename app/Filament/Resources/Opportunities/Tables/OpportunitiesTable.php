@@ -12,6 +12,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -51,6 +52,12 @@ class OpportunitiesTable
                     ->sortable()
                     ->color(fn (?Opportunity $record): ?string => $record?->response_due?->isPast() ? 'danger' : null)
                     ->placeholder('—'),
+                TextColumn::make('alqimi_sme')
+                    ->label('SME')
+                    ->icon(Heroicon::OutlinedUserCircle)
+                    ->placeholder('Unassigned')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('fit')
                     ->badge()
                     ->color(fn (Opportunity $record): string => match ($record->fit) {

@@ -1,10 +1,12 @@
 <?php
 
+use App\Filament\Resources\Opportunities\OpportunityResource;
 use App\Models\Opportunity;
 use App\Models\OpportunityBidAlert;
 use App\Models\User;
 use App\Notifications\BidDueDateReminder;
 use App\Services\BidAlertService;
+use Filament\Notifications\DatabaseNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -39,6 +41,13 @@ test('moving an opportunity into Bid sends the moved-to-bid alert to every Admin
         BidDueDateReminder::class,
         fn (BidDueDateReminder $notification) => (fn () => $this->milestone)->call($notification) === 'moved_to_bid',
     );
+
+    Notification::assertSentTo(
+        $admin,
+        DatabaseNotification::class,
+        fn (DatabaseNotification $notification) => $notification->data['title'] === "Bid decision made: {$opportunity->name}"
+            && $notification->data['actions'][0]['url'] === OpportunityResource::getUrl('view', ['record' => $opportunity->id]),
+    );
 });
 
 test('saving an opportunity without changing decision to Bid sends nothing', function () {
@@ -67,6 +76,13 @@ test('the daily command sends the 14-day reminder exactly when 14 days remain', 
         $admin,
         BidDueDateReminder::class,
         fn (BidDueDateReminder $notification) => (fn () => $this->milestone)->call($notification) === 'day_14',
+    );
+
+    Notification::assertSentTo(
+        $admin,
+        DatabaseNotification::class,
+        fn (DatabaseNotification $notification) => $notification->data['title'] === "14-day reminder: {$opportunity->name}"
+            && $notification->data['color'] === 'warning',
     );
 
     expect(OpportunityBidAlert::query()
