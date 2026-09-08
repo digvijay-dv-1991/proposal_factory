@@ -11,7 +11,9 @@ use App\Models\OpportunityContact;
 use App\Models\OpportunityPartner;
 use App\Models\OpportunityUpdate;
 use App\Models\User;
-use App\Notifications\InvitedToReviewOpportunity;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification as FilamentNotification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\RateLimiter;
@@ -404,7 +406,16 @@ class OpportunityModal extends Component
         $currentUser = auth()->user();
         $invitedByName = $currentUser !== null ? $currentUser->name : 'A teammate';
 
-        $invite->invitee->notify(new InvitedToReviewOpportunity($this->opportunity, $invitedByName));
+        FilamentNotification::make()
+            ->title('Invited to review an opportunity')
+            ->body("{$invitedByName} invited you to weigh in on \"{$this->opportunity->name}\".")
+            ->icon(Heroicon::OutlinedUserPlus)
+            ->actions([
+                Action::make('view')
+                    ->label('Open opportunity')
+                    ->url(route('opportunities.index', ['opportunity' => $this->opportunity->id])),
+            ])
+            ->sendToDatabase($invite->invitee, isEventDispatched: true);
     }
 
     public function postBidComment(): void
@@ -667,6 +678,21 @@ class OpportunityModal extends Component
     }
 
     /**
+     * The badge count shown next to a tab's name in the modal's tab strip.
+     */
+    public function tabBadgeCount(string $tab): int
+    {
+        return match ($tab) {
+            'Bid Decision' => count($this->bidInvites),
+            'Contracting Officers' => count($this->contacts),
+            'Teaming' => count($this->partners),
+            'Attachments' => $this->opportunity->exists ? $this->opportunity->attachments->count() : 0,
+            'Updates' => count($this->updatesList),
+            default => 0,
+        };
+    }
+
+    /**
      * Keeps $opportunity (used everywhere read-only: Summary panel,
      * Capability Fit, exports-to-be) mirroring $form live as the user
      * types, and intercepts the decision field changing to Bid/No Bid so it
@@ -897,6 +923,18 @@ class OpportunityModal extends Component
     public function requirementKeyPoints(): array
     {
         return $this->extractKeyPoints($this->opportunity->source_requirements ?: $this->opportunity->scope);
+    }
+
+    /**
+     * Whether the form's current set-aside value is legacy free text
+     * outside the curated dropdown list (see rules()'s note on
+     * form.set_aside), so the view must render it as an extra option
+     * rather than losing it from the select.
+     */
+    public function isNonStandardSetAside(): bool
+    {
+        return $this->form['set_aside'] !== null
+            && ! in_array($this->form['set_aside'], self::SET_ASIDE_OPTIONS, true);
     }
 
     public function eligibilityLabel(): string

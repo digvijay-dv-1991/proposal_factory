@@ -370,10 +370,28 @@ input, select {
     line-height: 1.12;
 }
 
-.view-tabs button[data-view="monitoring"] { background: #f3f3f3; border-color: #cbcbcb; color: #535353; }
+.view-tabs button[data-view="monitoring"] { background: #eef3f8; border-color: #bdcad8; color: #38556f; }
+.view-tabs button[data-view="monitoring"] .bubble { background: #dce6ef; color: #38556f; }
+.view-tabs button[data-view="monitoring"]:hover { border-color: #8fa4b8; }
+
 .view-tabs button[data-view="bid"] { background: #eaf4ec; border-color: #b9d8c2; color: #2f6f45; }
-.view-tabs button[data-view="nobid"] { background: #fbe6e4; border-color: #efb8b2; color: #a5332a; }
-.view-tabs button[data-view="submitted"] { background: #fffef0; border-color: #d9c300; color: #6f6400; }
+.view-tabs button[data-view="bid"] .bubble { background: #d5eadb; color: #2f6f45; }
+.view-tabs button[data-view="bid"]:hover { border-color: #8fb99b; }
+
+.view-tabs button[data-view="no_bid"] { background: #fbe6e4; border-color: #efb8b2; color: #a5332a; }
+.view-tabs button[data-view="no_bid"] .bubble { background: #f6d7d4; color: #a5332a; }
+.view-tabs button[data-view="no_bid"]:hover { border-color: #d8847b; box-shadow: 0 4px 12px rgba(165, 51, 42, .12); }
+
+.view-tabs button[data-view="pending"],
+.view-tabs button[data-view="more_info"] { background: #fff7dc; border-color: #d6a526; color: #7a5600; }
+.view-tabs button[data-view="pending"] .bubble,
+.view-tabs button[data-view="more_info"] .bubble { background: #f6e7ad; color: #7a5600; }
+.view-tabs button[data-view="pending"]:hover,
+.view-tabs button[data-view="more_info"]:hover { border-color: #bd8c12; box-shadow: 0 4px 12px rgba(166, 123, 16, .14); }
+
+.view-tabs button[data-view="submitted"] { background: #f3edfb; border-color: #9a78c7; color: #5f3f86; }
+.view-tabs button[data-view="submitted"] .bubble { background: #e3d8f3; color: #5f3f86; }
+.view-tabs button[data-view="submitted"]:hover { border-color: #7f5caf; box-shadow: 0 4px 12px rgba(95, 63, 134, .14); }
 
 .bubble {
     display: inline-grid;
@@ -2565,6 +2583,16 @@ input, select {
     cursor: pointer;
     font-size: 13px;
     color: var(--ink);
+}
+
+/* Long unbroken values (e.g. solicitation numbers with no spaces) must
+   wrap inside their own column instead of overflowing into the next one —
+   grid items default to min-width: auto, which lets content bleed past
+   its track. */
+.submitted-list-head > *,
+.submitted-row > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .submitted-row:hover {

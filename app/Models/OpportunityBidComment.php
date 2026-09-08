@@ -31,4 +31,15 @@ class OpportunityBidComment extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * The name shown next to a comment: the posting user's name, or the
+     * guest name they typed if they weren't logged in.
+     */
+    public function displayName(): string
+    {
+        $user = $this->user;
+
+        return $user !== null ? $user->name : ($this->author_name ?: 'Guest');
+    }
 }

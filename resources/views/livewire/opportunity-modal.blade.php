@@ -8,20 +8,10 @@
 
             <div class="modal-tabs">
                 @foreach (\App\Livewire\OpportunityModal::TABS as $tab)
-                    @php
-                        $count = match ($tab) {
-                            'Bid Decision' => count($bidInvites),
-                            'Contracting Officers' => count($contacts),
-                            'Teaming' => count($partners),
-                            'Attachments' => $opportunity->exists ? $opportunity->attachments->count() : 0,
-                            'Updates' => count($updatesList),
-                            default => 0,
-                        };
-                    @endphp
                     <button type="button" class="{{ $activeTab === $tab ? 'active' : '' }}" wire:click="selectTab('{{ $tab }}')">
                         {{ $tab }}
-                        @if ($count > 0)
-                            <span class="bubble">{{ $count }}</span>
+                        @if ($this->tabBadgeCount($tab) > 0)
+                            <span class="bubble">{{ $this->tabBadgeCount($tab) }}</span>
                         @endif
                     </button>
                 @endforeach
@@ -82,7 +72,7 @@
                                     <label>Set-Aside</label>
                                     <select wire:model="form.set_aside">
                                         <option value="" @selected($form['set_aside'] === null)>Select set-aside</option>
-                                        @if ($form['set_aside'] !== null && ! in_array($form['set_aside'], \App\Livewire\OpportunityModal::SET_ASIDE_OPTIONS, true))
+                                        @if ($this->isNonStandardSetAside())
                                             <option value="{{ $form['set_aside'] }}" selected>{{ $form['set_aside'] }}</option>
                                         @endif
                                         @foreach (\App\Livewire\OpportunityModal::SET_ASIDE_OPTIONS as $option)

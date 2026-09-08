@@ -2,10 +2,14 @@
 
 namespace App\Services;
 
+use App\Filament\Resources\Opportunities\OpportunityResource;
 use App\Models\Opportunity;
 use App\Models\OpportunityBidAlert;
 use App\Models\User;
 use App\Notifications\BidDueDateReminder;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification as FilamentNotification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
@@ -86,6 +90,18 @@ class BidAlertService
 
         if ($recipients->isNotEmpty()) {
             Notification::send($recipients, new BidDueDateReminder($opportunity, $milestone));
+
+            FilamentNotification::make()
+                ->title($this->notificationTitle($opportunity, $milestone))
+                ->body($this->notificationBody($opportunity, $milestone))
+                ->color($this->notificationColor($milestone))
+                ->icon(Heroicon::OutlinedFlag)
+                ->actions([
+                    Action::make('view')
+                        ->label('Open opportunity')
+                        ->url(OpportunityResource::getUrl('view', ['record' => $opportunity->id])),
+                ])
+                ->sendToDatabase($recipients, isEventDispatched: true);
         }
 
         OpportunityBidAlert::create([
@@ -102,5 +118,33 @@ class BidAlertService
     private function recipients(): Collection
     {
         return User::role('Admin')->get();
+    }
+
+    private function notificationTitle(Opportunity $opportunity, string $milestone): string
+    {
+        return match ($milestone) {
+            'moved_to_bid' => "Bid decision made: {$opportunity->name}",
+            'due_day' => "Due today: {$opportunity->name}",
+            default => self::DAY_MILESTONES[$milestone]."-day reminder: {$opportunity->name}",
+        };
+    }
+
+    private function notificationBody(Opportunity $opportunity, string $milestone): string
+    {
+        return match ($milestone) {
+            'moved_to_bid' => "{$opportunity->agency} — just moved into Bid.",
+            'due_day' => "{$opportunity->agency} — the response is due today.",
+            default => "{$opportunity->agency} — the response is due in ".self::DAY_MILESTONES[$milestone].' day'
+                .(self::DAY_MILESTONES[$milestone] === 1 ? '' : 's').'.',
+        };
+    }
+
+    private function notificationColor(string $milestone): string
+    {
+        return match ($milestone) {
+            'moved_to_bid' => 'success',
+            'due_day', 'day_1' => 'danger',
+            default => 'warning',
+        };
     }
 }

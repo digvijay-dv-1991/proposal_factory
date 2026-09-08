@@ -43,7 +43,8 @@
                             </div>
                             @forelse ($this->notifications() as $notification)
                                 <button type="button" class="notification-item {{ $notification->read_at ? '' : 'unread' }}" wire:click="openNotification('{{ $notification->id }}')">
-                                    <div>{{ $notification->data['invited_by'] }} invited you to review <strong>{{ $notification->data['opportunity_name'] }}</strong></div>
+                                    <div><strong>{{ $notification->data['title'] }}</strong></div>
+                                    <div>{{ $notification->data['body'] }}</div>
                                     <div class="notification-time">{{ $notification->created_at->diffForHumans() }}</div>
                                 </button>
                             @empty
@@ -142,9 +143,7 @@
         </div>
     </div>
 
-    @php($isRowListTab = in_array($this->activeTab(), ['no_bid', 'submitted'], true))
-
-    @unless ($activeView === 'daily_brief' || $isRowListTab)
+    @unless ($activeView === 'daily_brief' || $this->isRowListTab())
         <div class="section-tabs-wrap">
             <div class="section-tabs">
                 @foreach (\App\Livewire\OpportunityBoard::SECTIONS as $section)
@@ -156,16 +155,15 @@
         </div>
     @endunless
 
-    @if ($activeView === 'board' && $isRowListTab)
-        @php($isNoBid = $this->activeTab() === 'no_bid')
+    @if ($activeView === 'board' && $this->isRowListTab())
         <div class="board-shell">
-            <div class="submitted-list {{ $isNoBid ? 'nobid-list' : '' }}">
+            <div class="submitted-list {{ $this->isNoBidTab() ? 'nobid-list' : '' }}">
                 <div class="submitted-list-head">
                     <span>Opportunity</span>
                     <span>Agency</span>
                     <span>Solicitation</span>
-                    <span>{{ $isNoBid ? 'No Bid' : 'Submitted' }}</span>
-                    @if ($isNoBid)
+                    <span>{{ $this->isNoBidTab() ? 'No Bid' : 'Submitted' }}</span>
+                    @if ($this->isNoBidTab())
                         <span>Authorized By</span>
                         <span>Reason</span>
                     @endif
@@ -173,14 +171,14 @@
                 </div>
 
                 @forelse ($this->opportunities() as $opportunity)
-                    <article class="submitted-row {{ $isNoBid ? 'nobid-row' : '' }}" wire:click="openOpportunity({{ $opportunity->id }})" wire:key="row-{{ $opportunity->id }}">
+                    <article class="submitted-row {{ $this->isNoBidTab() ? 'nobid-row' : '' }}" wire:click="openOpportunity({{ $opportunity->id }})" wire:key="row-{{ $opportunity->id }}">
                         <div>
                             <div class="row-name">{{ $opportunity->name }}</div>
                             <div class="row-sub">{{ $opportunity->external_id }}</div>
                         </div>
                         <div>{{ $opportunity->agency }}</div>
                         <div>{{ $opportunity->solicitation ?: '—' }}</div>
-                        @if ($isNoBid)
+                        @if ($this->isNoBidTab())
                             <div>{{ $opportunity->decision_date?->format('M j, Y') ?? $opportunity->date_added?->format('M j, Y') ?? '—' }}</div>
                             <div class="nobid-authorized">{{ $opportunity->decision_by ?: 'Not recorded' }}</div>
                             <div class="nobid-reason">{{ $opportunity->decision_comment ?: 'Not recorded' }}</div>
@@ -196,32 +194,30 @@
                         </div>
                     </article>
                 @empty
-                    <div class="submitted-empty">{{ $isNoBid ? 'No No Bid opportunities.' : 'No submitted opportunities.' }}</div>
+                    <div class="submitted-empty">{{ $this->isNoBidTab() ? 'No No Bid opportunities.' : 'No submitted opportunities.' }}</div>
                 @endforelse
             </div>
         </div>
     @elseif ($activeView === 'board')
-        @php($visiblePhaseCount = count($this->visiblePhases()))
         <div class="board-shell">
             <div
                 class="board {{ $phaseFilter !== '' ? 'phase-filtered' : '' }}"
                 @if ($phaseFilter === '')
-                    style="grid-template-columns: repeat({{ $visiblePhaseCount }}, minmax(245px, 1fr)); min-width: {{ $visiblePhaseCount * 245 + ($visiblePhaseCount - 1) * 18 }}px;"
+                    style="{{ $this->boardGridStyle() }}"
                 @endif
             >
                 @foreach ($this->visiblePhases() as $phase)
-                    @php($column = $this->board()[$phase])
                     <div class="column">
                         <button type="button" class="phase-filter-btn {{ $phaseFilter === $phase ? 'active' : '' }}" wire:click="filterByPhase('{{ $phase }}')">
                             <span class="column-title"><span class="dot"></span>{{ $phase }}</span>
                             <span class="column-meta">
-                                <strong>{{ $column['items']->count() }}</strong>
-                                {{ \Illuminate\Support\Number::currency($column['total'], in: 'USD', precision: 0) }}
+                                <strong>{{ $this->boardColumn($phase)['items']->count() }}</strong>
+                                {{ \Illuminate\Support\Number::currency($this->boardColumn($phase)['total'], in: 'USD', precision: 0) }}
                             </span>
                         </button>
 
                         <div class="stack">
-                            @forelse ($column['items'] as $opportunity)
+                            @forelse ($this->boardColumn($phase)['items'] as $opportunity)
                                 <x-opportunity-card :opportunity="$opportunity" wire:key="opportunity-{{ $opportunity->id }}" />
                             @empty
                                 <div class="empty">No opportunities</div>
@@ -249,14 +245,7 @@
         <div class="app-overlay" wire:click.self="closeOverlay">
             <div class="app-dialog wide">
                 <div class="app-dialog-head">
-                    <h2>
-                        {{ match ($activeOverlay) {
-                            'contract_vehicles' => 'Contract Vehicles',
-                            'competitors' => 'Competitors',
-                            'partners' => 'Teaming Network',
-                            default => '',
-                        } }}
-                    </h2>
+                    <h2>{{ $this->overlayTitle() }}</h2>
                     <button type="button" class="app-dialog-close" wire:click="closeOverlay">&times;</button>
                 </div>
                 <div class="app-dialog-body">
