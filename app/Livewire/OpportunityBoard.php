@@ -206,6 +206,7 @@ class OpportunityBoard extends Component
             'contract_vehicles' => 'Contract Vehicles',
             'competitors' => 'Competitors',
             'partners' => 'Teaming Network',
+            'suggestions' => 'Suggestions',
             default => '',
         };
     }

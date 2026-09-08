@@ -54,6 +54,9 @@
                     @endif
                 </div>
             @endauth
+            <button type="button" class="feedback-btn" wire:click="openOverlay('suggestions')" title="Share a suggestion or see what others have suggested">
+                <span class="feedback-icon">&#128161;</span> Suggestions
+            </button>
             <button type="button" class="new-opportunity-top" wire:click="newOpportunity" wire:loading.attr="disabled" wire:target="newOpportunity">
                 <span wire:loading.remove wire:target="newOpportunity">+ New Opportunity</span>
                 <span wire:loading wire:target="newOpportunity">Opening&hellip;</span>
@@ -255,6 +258,8 @@
                         <livewire:competitor-directory :key="'overlay-competitors'" />
                     @elseif ($activeOverlay === 'partners')
                         <livewire:partner-directory :key="'overlay-partners'" />
+                    @elseif ($activeOverlay === 'suggestions')
+                        <livewire:suggestion-board :key="'overlay-suggestions'" />
                     @endif
                 </div>
             </div>
