@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\FetchSamGovOpportunities;
 use App\Console\Commands\SendBidDueDateAlerts;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -14,3 +15,10 @@ Artisan::command('inspire', function () {
 Schedule::command(SendBidDueDateAlerts::class)
     ->dailyAt('08:00')
     ->timezone('America/New_York');
+
+// Same 8am Eastern slot as the client's own "Morning Recon" workflow this
+// replaces the manual half of. Run `php artisan opportunities:fetch-sam-gov`
+// directly (add --limit=N locally to stay under a low-tier API quota).
+// Schedule::command(FetchSamGovOpportunities::class)
+//     ->dailyAt('08:00')
+//     ->timezone('America/New_York');

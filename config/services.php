@@ -21,6 +21,10 @@ return [
         'model' => env('OPENAI_MODEL', 'gpt-4.1'),
     ],
 
+    'sam_gov' => [
+        'key' => env('SAM_GOV_API_KEY'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
