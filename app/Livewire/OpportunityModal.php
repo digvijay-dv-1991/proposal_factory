@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -355,6 +356,20 @@ class OpportunityModal extends Component
                 ];
             })
             ->all();
+    }
+
+    /**
+     * Live-refresh hook for the socket-pushed comment event (see
+     * OpportunityBidCommentObserver) — scoped to this opportunity's own
+     * channel via Livewire's {opportunity.id} interpolation, so it's only
+     * ever triggered while this exact opportunity's modal is open on a
+     * viewer's screen. Reuses refreshBidComments() as-is, so a comment
+     * posted from this same modal never shows up duplicated.
+     */
+    #[On('echo-private:opportunity.{opportunity.id}.comments,BidCommentPosted')]
+    public function handleBidCommentPosted(): void
+    {
+        $this->refreshBidComments();
     }
 
     /**

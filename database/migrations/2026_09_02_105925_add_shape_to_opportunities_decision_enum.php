@@ -1,7 +1,8 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -12,11 +13,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE opportunities MODIFY decision ENUM('Pending', 'More Info', 'Monitoring', 'Shape', 'Bid', 'No Bid') NOT NULL DEFAULT 'Pending'");
+        Schema::table('opportunities', function (Blueprint $table) {
+            $table->enum('decision', ['Pending', 'More Info', 'Monitoring', 'Shape', 'Bid', 'No Bid'])
+                ->default('Pending')
+                ->change();
+        });
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE opportunities MODIFY decision ENUM('Pending', 'More Info', 'Monitoring', 'Bid', 'No Bid') NOT NULL DEFAULT 'Pending'");
+        Schema::table('opportunities', function (Blueprint $table) {
+            $table->enum('decision', ['Pending', 'More Info', 'Monitoring', 'Bid', 'No Bid'])
+                ->default('Pending')
+                ->change();
+        });
     }
 };
