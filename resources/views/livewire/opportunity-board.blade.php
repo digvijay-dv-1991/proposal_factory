@@ -61,6 +61,23 @@
                 <span wire:loading.remove wire:target="newOpportunity">+ New Opportunity</span>
                 <span wire:loading wire:target="newOpportunity">Opening&hellip;</span>
             </button>
+            @auth
+                <div class="user-menu" x-data x-on:click.outside="$wire.showUserMenu && $wire.toggleUserMenu()">
+                    <button type="button" class="user-menu-btn" wire:click="toggleUserMenu" title="{{ auth()->user()->name }}">
+                        {{ \Illuminate\Support\Str::of(auth()->user()->name)->substr(0, 1)->upper() }}
+                    </button>
+                    @if ($showUserMenu)
+                        <div class="user-dropdown">
+                            <div class="user-dropdown-head">
+                                <strong>{{ auth()->user()->name }}</strong>
+                                <span>{{ auth()->user()->email }}</span>
+                            </div>
+                            <a href="{{ route('profile') }}" wire:navigate class="user-dropdown-link">Profile</a>
+                            <button type="button" class="user-dropdown-link user-dropdown-logout" wire:click="logout">Log Out</button>
+                        </div>
+                    @endif
+                </div>
+            @endauth
         </div>
     </header>
 
