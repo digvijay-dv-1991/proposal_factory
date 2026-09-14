@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Opportunity;
-use Illuminate\Support\Facades\Http;
+use App\Services\Concerns\ExtractsOpenAiOutputText;
+use App\Services\Concerns\SendsOpenAiRequests;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
@@ -12,12 +14,12 @@ use RuntimeException;
  * with a source link, and anything the search can't verify gets an honest
  * hedge sentence ("Unknown", "None identified", "TBD") rather than a
  * fabricated answer, matching ALQIMI's existing house style for this data.
- * See the Responses API's web_search tool docs; this is the one part of the
- * AI integration that needs to be re-verified against a live API key once
- * one is available, since it can't be tested without one.
  */
 class OpenAiCompetitiveResearchService
 {
+    use ExtractsOpenAiOutputText;
+    use SendsOpenAiRequests;
+
     /**
      * @var array<int, string>
      */
@@ -30,7 +32,7 @@ class OpenAiCompetitiveResearchService
     ];
 
     /**
-     * @return array{fields: array<string, string>, sources: array<int, array{label: string, url: string}>}
+     * @return array{fields: array<string, string>, sources: array<int, array{label: string, url: string}>, competitor_profiles: array<int, array{name: string, url: string|null}>}
      */
     public function generate(Opportunity $opportunity): array
     {
@@ -40,27 +42,30 @@ class OpenAiCompetitiveResearchService
             throw new RuntimeException('OpenAI is not configured yet — add OPENAI_API_KEY to .env.');
         }
 
-        $response = Http::withToken($apiKey)
-            ->timeout(120)
-            ->post('https://api.openai.com/v1/responses', [
-                'model' => config('services.openai.model'),
-                'tools' => [['type' => 'web_search']],
-                'input' => $this->buildPrompt($opportunity),
-                'text' => [
-                    'format' => [
-                        'type' => 'json_schema',
-                        'name' => 'opportunity_competitive_research',
-                        'strict' => true,
-                        'schema' => $this->schema(),
-                    ],
+        $response = $this->callOpenAi($apiKey, [
+            'model' => config('services.openai.model'),
+            'tools' => [['type' => 'web_search']],
+            'input' => $this->buildPrompt($opportunity),
+            'text' => [
+                'format' => [
+                    'type' => 'json_schema',
+                    'name' => 'opportunity_competitive_research',
+                    'strict' => true,
+                    'schema' => $this->schema(),
                 ],
-            ])
-            ->throw();
+            ],
+        ], timeout: 120);
 
-        /** @var array{fields: array<string, string>, sources: array<int, array{label: string, url: string}>} */
-        $decoded = json_decode((string) $response->json('output_text'), true, flags: JSON_THROW_ON_ERROR);
+        $outputText = $this->extractOutputText($response->json() ?? []);
 
-        return $decoded;
+        if (blank($outputText)) {
+            Log::error('OpenAI competitive research: could not find a message output_text.', ['response' => $response->json()]);
+
+            throw new RuntimeException('OpenAI returned no readable output for the competitive research call — see the log for the raw response.');
+        }
+
+        /** @var array{fields: array<string, string>, sources: array<int, array{label: string, url: string}>, competitor_profiles: array<int, array{name: string, url: string|null}>} */
+        return json_decode($outputText, true, flags: JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -73,7 +78,7 @@ class OpenAiCompetitiveResearchService
         return [
             'type' => 'object',
             'additionalProperties' => false,
-            'required' => ['fields', 'sources'],
+            'required' => ['fields', 'sources', 'competitor_profiles'],
             'properties' => [
                 'fields' => [
                     'type' => 'object',
@@ -90,6 +95,18 @@ class OpenAiCompetitiveResearchService
                         'properties' => [
                             'label' => ['type' => 'string'],
                             'url' => ['type' => 'string'],
+                        ],
+                    ],
+                ],
+                'competitor_profiles' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'required' => ['name', 'url'],
+                        'properties' => [
+                            'name' => ['type' => 'string'],
+                            'url' => ['type' => ['string', 'null']],
                         ],
                     ],
                 ],
@@ -189,9 +206,10 @@ class OpenAiCompetitiveResearchService
             incumbent_source (a citation of where the info came from):
             "GovWin Opportunity 234282" or the actual URL/page name you used.
 
-            Return JSON with two top-level keys: "fields" (an object with one entry
-            per field below) and "sources" (an array of {label, url} — every source
-            page you actually used to write a specific fact, not a hedge).
+            Return JSON with three top-level keys: "fields" (an object with one
+            entry per field below), "sources" (an array of {label, url} — every
+            source page you actually used to write a specific fact, not a hedge),
+            and "competitor_profiles" (see below).
 
             Fields to fill:
             - competitive_position, competitive_analysis, competitive_discriminators, competitive_next_action
@@ -201,6 +219,14 @@ class OpenAiCompetitiveResearchService
             - incumbent, incumbent_contract, incumbent_award_value, incumbent_period
             - incumbent_brief, incumbent_performance, incumbent_strengths, incumbent_weaknesses, incumbent_customer_relationship
             - incumbent_source (the URL that verifies the incumbent)
+
+            competitor_profiles: one entry for every specific, named company you
+            reported above (the incumbent plus each named competitor — skip generic
+            category descriptions with no named company). Each entry has:
+            - name: the exact company name as used in the fields above.
+            - url: that company's real official website homepage, ONLY if you
+              actually found and can verify one via search — otherwise null. Never
+              guess a company's website from its name.
             PROMPT;
     }
 }

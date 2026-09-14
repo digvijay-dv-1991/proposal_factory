@@ -783,6 +783,8 @@ class OpportunityModal extends Component
     {
         $this->validate($this->rules());
 
+        $isNewOpportunity = ! $this->opportunity->exists;
+
         $this->opportunity->fill($this->form);
 
         if (! $this->opportunity->has_required_source) {
@@ -801,6 +803,14 @@ class OpportunityModal extends Component
         }
 
         $this->opportunity->save();
+
+        // Same automatic first-pass AI Analysis (Bid Strength / Win
+        // Probability, Gap Analysis draft, narrative sections) that an
+        // AI-discovered opportunity gets — a manually-created one shouldn't
+        // sit at a misleading 0% until someone remembers to click Generate.
+        if ($isNewOpportunity) {
+            GenerateAiAnalysis::dispatch($this->opportunity->id);
+        }
 
         if ($this->decisionJustConfirmed) {
             $this->opportunity->decisionHistory()->create([
