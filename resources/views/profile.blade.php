@@ -1,29 +1,40 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="user-id" content="{{ auth()->id() }}">
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
+        <title>Profile — ALQIMI Capture Deck</title>
+
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="preconnect" href="https://fonts.bunny.net">
+        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800,900|jost:500,600,700&display=swap" rel="stylesheet" />
+
+        @vite(['resources/css/capture-deck.css', 'resources/js/app.js'])
+    </head>
+    <body>
+        <div class="app">
+            <header class="masthead profile-masthead">
+                <div class="brand-row">
+                    <div class="brand">
+                        <x-brand-mark :size="30" />
+                        <span class="brand-tag">Capture Deck</span>
+                    </div>
+                    <a href="{{ route('opportunities.index') }}" wire:navigate class="btn">&larr; Back to Opportunities</a>
+                </div>
+            </header>
+
+            <div class="profile-page">
+                <h1 class="profile-page-title">Profile</h1>
+
+                <div class="profile-page-grid">
                     <livewire:profile.update-profile-information-form />
-                </div>
-            </div>
-
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
                     <livewire:profile.update-password-form />
-                </div>
-            </div>
-
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
                     <livewire:profile.delete-user-form />
                 </div>
             </div>
         </div>
-    </div>
-</x-app-layout>
+    </body>
+</html>

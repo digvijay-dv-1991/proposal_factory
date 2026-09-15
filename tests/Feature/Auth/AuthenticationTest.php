@@ -49,7 +49,7 @@ test('users can not authenticate with invalid password', function () {
     $this->assertGuest();
 });
 
-test('navigation menu can be rendered', function () {
+test('profile page can be rendered', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
@@ -58,7 +58,9 @@ test('navigation menu can be rendered', function () {
 
     $response
         ->assertOk()
-        ->assertSeeVolt('layout.navigation');
+        ->assertSeeVolt('profile.update-profile-information-form')
+        ->assertSeeVolt('profile.update-password-form')
+        ->assertSeeVolt('profile.delete-user-form');
 });
 
 test('users can logout', function () {

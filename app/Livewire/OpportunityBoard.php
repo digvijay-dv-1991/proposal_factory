@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Actions\Logout;
 use App\Models\Opportunity;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -116,9 +117,23 @@ class OpportunityBoard extends Component
 
     public bool $showNotifications = false;
 
+    public bool $showUserMenu = false;
+
     public function toggleNotifications(): void
     {
         $this->showNotifications = ! $this->showNotifications;
+    }
+
+    public function toggleUserMenu(): void
+    {
+        $this->showUserMenu = ! $this->showUserMenu;
+    }
+
+    public function logout(Logout $logout): void
+    {
+        $logout();
+
+        $this->redirect(route('login'), navigate: true);
     }
 
     /**
@@ -170,6 +185,17 @@ class OpportunityBoard extends Component
      */
     #[On('notifications-updated')]
     public function refreshNotifications(): void {}
+
+    /**
+     * Live-refresh hook for the socket-pushed board-change event (see
+     * OpportunityObserver, which fires it on create and on a decision/phase
+     * change) — #[Computed] properties are memoized only per-request, so
+     * the empty handler alone is enough to force opportunities()/tab counts/
+     * section counts/phase groupings to re-read fresh on this round trip,
+     * still respecting whatever filters/tabs/search this viewer has active.
+     */
+    #[On('echo-private:opportunities-board,OpportunityBoardChanged')]
+    public function refreshBoard(): void {}
 
     public function openOpportunity(int $id): void
     {
