@@ -39,12 +39,12 @@
                                     <input type="text" wire:model="form.name" value="{{ $form['name'] }}">
                                     @error('form.name') <div class="source-required-note">{{ $message }}</div> @enderror
                                 </div>
-                                <div class="field">
+                                <div class="field full">
                                     <label>Agency Name</label>
                                     <input type="text" wire:model="form.agency" value="{{ $form['agency'] }}">
                                     @error('form.agency') <div class="source-required-note">{{ $message }}</div> @enderror
                                 </div>
-                                <div class="field">
+                                <div class="field full">
                                     <label>Agency Sub Section</label>
                                     <input type="text" wire:model="form.agency_subsection" value="{{ $form['agency_subsection'] }}">
                                 </div>
@@ -172,6 +172,10 @@
                             <h3>Core Narrative</h3>
                             <div class="fields">
                                 <div class="field full">
+                                    <label>Solicitation Description</label>
+                                    <textarea wire:model="form.source_description">{{ $form['source_description'] }}</textarea>
+                                </div>
+                                <div class="field full">
                                     <label>Solicitation Key Points</label>
                                     @if (count($this->solicitationKeyPoints))
                                         <div class="solicitation-key-points"><ul>
@@ -182,10 +186,6 @@
                                     @else
                                         <div class="notice">No source Event Description is available to summarize.</div>
                                     @endif
-                                </div>
-                                <div class="field full">
-                                    <label>Solicitation Description</label>
-                                    <textarea wire:model="form.source_description">{{ $form['source_description'] }}</textarea>
                                 </div>
                                 <div class="field full">
                                     <label>Requirements Key Points</label>
@@ -203,10 +203,7 @@
                                     <label>Solicitation Requirements</label>
                                     <textarea wire:model="form.source_requirements">{{ $form['source_requirements'] }}</textarea>
                                 </div>
-                                <div class="field full">
-                                    <label class="gap-title">Primary Gap / Risk</label>
-                                    <textarea wire:model="form.gap" placeholder="Explain why the gap matters, source requirement context, and mitigation approach.">{{ $form['gap'] }}</textarea>
-                                </div>
+                                @include('livewire.partials.trix-field', ['model' => 'form.gap', 'label' => 'Primary Gap / Risk', 'labelClass' => 'gap-title', 'fieldId' => 'gap-trix-overview'])
                             </div>
                         </div>
 
@@ -325,6 +322,19 @@
                             @endif
                         </div>
 
+                        @if (count($opportunity->competitive_analysis_sources ?? []))
+                            <div class="panel">
+                                <h3>Sources Found</h3>
+                                <div class="ai-sources">
+                                    <ul>
+                                        @foreach ($opportunity->competitive_analysis_sources as $source)
+                                            <li><a href="{{ $source['url'] }}" target="_blank" rel="noopener noreferrer">{{ $source['label'] }}</a></li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="panel">
                             <h3>Source Attachments</h3>
                             @if ($opportunity->exists && $opportunity->attachments->count())
@@ -433,18 +443,6 @@
                                                     @error("contacts.{$index}.name") <div class="source-required-note">{{ $message }}</div> @enderror
                                                 </div>
                                                 <div class="field repeater-field-md">
-                                                    <label>Title</label>
-                                                    <input type="text" wire:model="contacts.{{ $index }}.title" value="{{ $contact['title'] }}">
-                                                </div>
-                                                <div class="field repeater-field-md">
-                                                    <label>Organization</label>
-                                                    <input type="text" wire:model="contacts.{{ $index }}.organization" value="{{ $contact['organization'] }}">
-                                                </div>
-                                                <div class="field repeater-field-sm">
-                                                    <label>Role</label>
-                                                    <input type="text" wire:model="contacts.{{ $index }}.role" value="{{ $contact['role'] }}">
-                                                </div>
-                                                <div class="field repeater-field-md">
                                                     <label>Email</label>
                                                     <input type="email" wire:model="contacts.{{ $index }}.email" value="{{ $contact['email'] }}">
                                                     @error("contacts.{$index}.email") <div class="source-required-note">{{ $message }}</div> @enderror
@@ -463,9 +461,6 @@
                                 </div>
                                 <div class="inline-actions repeater-row">
                                     <div class="field repeater-field-md"><label>Name</label><input type="text" wire:model="newContact.name" placeholder="New contact name"></div>
-                                    <div class="field repeater-field-md"><label>Title</label><input type="text" wire:model="newContact.title"></div>
-                                    <div class="field repeater-field-md"><label>Organization</label><input type="text" wire:model="newContact.organization"></div>
-                                    <div class="field repeater-field-sm"><label>Role</label><input type="text" wire:model="newContact.role"></div>
                                     <div class="field repeater-field-md"><label>Email</label><input type="email" wire:model="newContact.email"></div>
                                     <div class="field repeater-field-md"><label>Phone</label><input type="text" wire:model="newContact.phone"></div>
                                     <button type="button" class="btn primary" wire:click="addContact">+ Add contact</button>
@@ -518,14 +513,8 @@
                         <div class="panel">
                             <h3>Gap Analysis</h3>
                             <div class="fields">
-                                <div class="field full">
-                                    <label>Primary Gap / Risk</label>
-                                    <textarea wire:model="form.gap">{{ $form['gap'] }}</textarea>
-                                </div>
-                                <div class="field full">
-                                    <label>Gap Mitigation</label>
-                                    <textarea wire:model="form.gap_mitigation">{{ $form['gap_mitigation'] }}</textarea>
-                                </div>
+                                @include('livewire.partials.trix-field', ['model' => 'form.gap', 'label' => 'Primary Gap / Risk', 'fieldId' => 'gap-trix-tab'])
+                                @include('livewire.partials.trix-field', ['model' => 'form.gap_mitigation', 'label' => 'Gap Mitigation', 'fieldId' => 'gap-mitigation-trix-tab'])
                                 <div class="field">
                                     <label>Gap Owner</label>
                                     <input type="text" wire:model="form.gap_owner" value="{{ $form['gap_owner'] }}">
@@ -543,89 +532,6 @@
                     </div>
                 @elseif ($activeTab === 'Competitive Analysis')
                     <div class="tab-page active" @if ($generatingCompetitiveAnalysis) wire:poll.3s="pollCompetitiveAnalysis" @endif>
-                        <div class="panel ai-generate-panel">
-                            <div class="ai-generate-row">
-                                <div>
-                                    <h3>AI Research</h3>
-                                    @if ($opportunity->competitive_analysis_generated_at)
-                                        <p class="ai-generated-note">Last generated {{ $opportunity->competitive_analysis_generated_at->diffForHumans() }} — every fact below is sourced, see Sources Found.</p>
-                                    @else
-                                        <p class="ai-generated-note">Not generated yet. AI will search the web and fill every field below, citing sources — anything it can't verify is left blank.</p>
-                                    @endif
-                                </div>
-                                <button type="button" class="btn primary" wire:click="generateCompetitiveAnalysis" wire:loading.attr="disabled" wire:target="generateCompetitiveAnalysis" @disabled($generatingCompetitiveAnalysis)>
-                                    @if ($generatingCompetitiveAnalysis)
-                                        Researching&hellip;
-                                    @elseif ($opportunity->competitive_analysis_generated_at)
-                                        Regenerate with AI
-                                    @else
-                                        Generate with AI
-                                    @endif
-                                </button>
-                            </div>
-                            @error('competitiveAnalysis') <div class="source-required-note">{{ $message }}</div> @enderror
-                            @if (count($opportunity->competitive_analysis_sources ?? []))
-                                <div class="ai-sources">
-                                    <strong>Sources found</strong>
-                                    <ul>
-                                        @foreach ($opportunity->competitive_analysis_sources as $source)
-                                            <li><a href="{{ $source['url'] }}" target="_blank" rel="noopener noreferrer">{{ $source['label'] }}</a></li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
-                        </div>
-
-                        <div class="panel">
-                            <h3>Competitive Analysis</h3>
-                            <div class="fields">
-                                <div class="field">
-                                    <label>Competitive Position</label>
-                                    <select wire:model="form.competitive_position">
-                                        @foreach (\App\Livewire\OpportunityModal::COMPETITIVE_POSITIONS as $position)
-                                            <option value="{{ $position }}" @selected($form['competitive_position'] === $position)>{{ $position }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="field full">
-                                    <label>Competitive Analysis</label>
-                                    <textarea wire:model="form.competitive_analysis">{{ $form['competitive_analysis'] }}</textarea>
-                                </div>
-                                <div class="field full">
-                                    <label>Competitive Discriminators</label>
-                                    <textarea wire:model="form.competitive_discriminators">{{ $form['competitive_discriminators'] }}</textarea>
-                                </div>
-                                <div class="field full">
-                                    <label>Competitive Next Action</label>
-                                    <textarea wire:model="form.competitive_next_action">{{ $form['competitive_next_action'] }}</textarea>
-                                </div>
-                                <div class="field full">
-                                    <label>Known / Likely Competitors</label>
-                                    <textarea wire:model="form.competitors">{{ $form['competitors'] }}</textarea>
-                                </div>
-                                <div class="field full">
-                                    <label>Recommended Teaming Strategy</label>
-                                    <textarea wire:model="form.teaming">{{ $form['teaming'] }}</textarea>
-                                </div>
-                                <div class="field full">
-                                    <label>RFP Response Instructions</label>
-                                    <textarea wire:model="form.rfp_instructions">{{ $form['rfp_instructions'] }}</textarea>
-                                </div>
-                                <div class="field full">
-                                    <label>Required RFP Sections / Questions</label>
-                                    <textarea wire:model="form.rfp_sections">{{ $form['rfp_sections'] }}</textarea>
-                                </div>
-                                <div class="field full">
-                                    <label>Page Limit / Formatting</label>
-                                    <input type="text" wire:model="form.rfp_format" value="{{ $form['rfp_format'] }}">
-                                </div>
-                                <div class="field full">
-                                    <label>Evaluation Factors</label>
-                                    <textarea wire:model="form.evaluation_factors">{{ $form['evaluation_factors'] }}</textarea>
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="panel">
                             <h3>Incumbent</h3>
                             <div class="fields">
@@ -671,6 +577,68 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="panel ai-generate-panel">
+                            <div class="ai-generate-row">
+                                <div>
+                                    <h3>AI Research</h3>
+                                    @if ($opportunity->competitive_analysis_generated_at)
+                                        <p class="ai-generated-note">Last generated {{ $opportunity->competitive_analysis_generated_at->diffForHumans() }} — every fact below is sourced, see Sources Found on the Overview tab.</p>
+                                    @else
+                                        <p class="ai-generated-note">Not generated yet. AI will search the web and fill every field below, citing sources — anything it can't verify is left blank.</p>
+                                    @endif
+                                </div>
+                                <button type="button" class="btn primary" wire:click="generateCompetitiveAnalysis" wire:loading.attr="disabled" wire:target="generateCompetitiveAnalysis" @disabled($generatingCompetitiveAnalysis)>
+                                    @if ($generatingCompetitiveAnalysis)
+                                        Researching&hellip;
+                                    @elseif ($opportunity->competitive_analysis_generated_at)
+                                        Regenerate with AI
+                                    @else
+                                        Generate with AI
+                                    @endif
+                                </button>
+                            </div>
+                            @error('competitiveAnalysis') <div class="source-required-note">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="panel">
+                            <h3>Competitive Analysis</h3>
+                            <div class="fields">
+                                <div class="field">
+                                    <label>Competitive Position</label>
+                                    <select wire:model="form.competitive_position">
+                                        @foreach (\App\Livewire\OpportunityModal::COMPETITIVE_POSITIONS as $position)
+                                            <option value="{{ $position }}" @selected($form['competitive_position'] === $position)>{{ $position }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                @include('livewire.partials.trix-field', ['model' => 'form.competitive_analysis', 'label' => 'Competitive Analysis', 'fieldId' => 'competitive-analysis-trix'])
+                                <div class="field full">
+                                    <label>Known / Likely Competitors</label>
+                                    <textarea wire:model="form.competitors">{{ $form['competitors'] }}</textarea>
+                                </div>
+                                <div class="field full">
+                                    <label>Recommended Teaming Strategy</label>
+                                    <textarea wire:model="form.teaming">{{ $form['teaming'] }}</textarea>
+                                </div>
+                                <div class="field full">
+                                    <label>RFP Response Instructions</label>
+                                    <textarea wire:model="form.rfp_instructions">{{ $form['rfp_instructions'] }}</textarea>
+                                </div>
+                                <div class="field full">
+                                    <label>Required RFP Sections / Questions</label>
+                                    <textarea wire:model="form.rfp_sections">{{ $form['rfp_sections'] }}</textarea>
+                                </div>
+                                <div class="field full">
+                                    <label>Page Limit / Formatting</label>
+                                    <input type="text" wire:model="form.rfp_format" value="{{ $form['rfp_format'] }}">
+                                </div>
+                                <div class="field full">
+                                    <label>Evaluation Factors</label>
+                                    <textarea wire:model="form.evaluation_factors">{{ $form['evaluation_factors'] }}</textarea>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 @elseif ($activeTab === 'Teaming')
                     <div class="tab-page active">
@@ -697,6 +665,14 @@
                                                     <input type="text" wire:model="partners.{{ $index }}.status" value="{{ $partner['status'] }}">
                                                 </div>
                                                 <div class="field repeater-field-md">
+                                                    <label>Contact Email</label>
+                                                    <input type="email" wire:model="partners.{{ $index }}.contact_email" value="{{ $partner['contact_email'] }}">
+                                                </div>
+                                                <div class="field repeater-field-md">
+                                                    <label>Contact Phone</label>
+                                                    <input type="text" wire:model="partners.{{ $index }}.contact_phone" value="{{ $partner['contact_phone'] }}">
+                                                </div>
+                                                <div class="field repeater-field-md">
                                                     <label>Capability</label>
                                                     <input type="text" wire:model="partners.{{ $index }}.capability" value="{{ $partner['capability'] }}">
                                                 </div>
@@ -716,6 +692,8 @@
                                     <div class="field repeater-field-md"><label>Company</label><input type="text" wire:model="newPartner.company" placeholder="New partner company"></div>
                                     <div class="field repeater-field-sm"><label>Role</label><input type="text" wire:model="newPartner.role"></div>
                                     <div class="field repeater-field-sm"><label>Status</label><input type="text" wire:model="newPartner.status"></div>
+                                    <div class="field repeater-field-md"><label>Contact Email</label><input type="email" wire:model="newPartner.contact_email"></div>
+                                    <div class="field repeater-field-md"><label>Contact Phone</label><input type="text" wire:model="newPartner.contact_phone"></div>
                                     <div class="field repeater-field-md"><label>Capability</label><input type="text" wire:model="newPartner.capability"></div>
                                     <div class="field repeater-field-grow"><label>Rationale</label><input type="text" wire:model="newPartner.rationale"></div>
                                     <button type="button" class="btn primary" wire:click="addPartner">+ Add partner</button>

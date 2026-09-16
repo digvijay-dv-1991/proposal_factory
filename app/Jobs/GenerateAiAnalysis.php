@@ -41,7 +41,7 @@ class GenerateAiAnalysis implements ShouldQueue
      * get served a stale result missing the new field(s), exactly like the
      * "Undefined array key" crash this version bump fixes.
      */
-    private const CACHE_VERSION = 2;
+    private const CACHE_VERSION = 3;
 
     public function __construct(private readonly int $opportunityId) {}
 
@@ -59,6 +59,7 @@ class GenerateAiAnalysis implements ShouldQueue
         $cacheKey = 'ai-analysis:v'.self::CACHE_VERSION.':'.hash('sha256', (string) json_encode($opportunity->only([
             'name', 'agency', 'description', 'focus', 'go_strength', 'gap',
             'incumbent', 'competitive_position', 'competitive_analysis',
+            'source_description', 'source_requirements',
         ])));
 
         $result = Cache::remember($cacheKey, now()->addDay(), fn () => $service->generate($opportunity));
@@ -86,6 +87,22 @@ class GenerateAiAnalysis implements ShouldQueue
 
         if (blank($opportunity->gap_mitigation)) {
             $updates['gap_mitigation'] = $result['gap_mitigation'];
+        }
+
+        // Core Narrative's Solicitation Description was never written by any
+        // pipeline before this — reuse the executive summary (already a
+        // short, dense paragraph) instead of paying for a second, near-
+        // duplicate OpenAI field.
+        if (blank($opportunity->source_description)) {
+            $updates['source_description'] = $result['executive_summary'];
+        }
+
+        if (blank($opportunity->key_points)) {
+            $updates['key_points'] = $result['key_points'];
+        }
+
+        if (blank($opportunity->requirement_key_points)) {
+            $updates['requirement_key_points'] = $result['requirement_key_points'];
         }
 
         // Same rule for Bid Strength / Win Probability — 0 is each column's

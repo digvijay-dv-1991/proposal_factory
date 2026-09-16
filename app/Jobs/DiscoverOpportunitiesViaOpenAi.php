@@ -230,6 +230,7 @@ class DiscoverOpportunitiesViaOpenAi implements ShouldQueue
         // their logic here.
         GenerateCompetitiveAnalysis::dispatch($opportunity->id);
         GenerateAiAnalysis::dispatch($opportunity->id);
+        DiscoverContractingOfficer::dispatch($opportunity->id);
     }
 
     /**

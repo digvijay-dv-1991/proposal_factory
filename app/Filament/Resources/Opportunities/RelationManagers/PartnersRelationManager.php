@@ -40,6 +40,8 @@ class PartnersRelationManager extends RelationManager
                 TextInput::make('company')->required()->maxLength(255),
                 TextInput::make('role')->maxLength(255),
                 TextInput::make('status')->maxLength(255),
+                TextInput::make('contact_email')->email()->maxLength(255),
+                TextInput::make('contact_phone')->tel()->maxLength(255),
                 TextInput::make('capability')->columnSpanFull(),
                 Textarea::make('rationale')->rows(3)->columnSpanFull(),
             ]);
@@ -53,6 +55,7 @@ class PartnersRelationManager extends RelationManager
                 TextColumn::make('company')->weight('semibold')->searchable(),
                 TextColumn::make('role')->badge()->color('gray')->placeholder('—'),
                 TextColumn::make('status')->badge()->color('info')->placeholder('—'),
+                TextColumn::make('contact_email')->copyable()->placeholder('—'),
                 TextColumn::make('capability')->limit(50)->placeholder('—'),
             ])
             ->headerActions([

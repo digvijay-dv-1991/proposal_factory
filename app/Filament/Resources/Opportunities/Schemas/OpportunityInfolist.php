@@ -70,8 +70,8 @@ class OpportunityInfolist
                     ->components([
                         TextEntry::make('gap_status')->badge()->color('gray'),
                         TextEntry::make('gap_owner')->placeholder('—'),
-                        TextEntry::make('gap')->columnSpanFull(),
-                        TextEntry::make('gap_mitigation')->label('Mitigation plan')->columnSpanFull()->placeholder('—'),
+                        TextEntry::make('gap')->html()->columnSpanFull(),
+                        TextEntry::make('gap_mitigation')->html()->label('Mitigation plan')->columnSpanFull()->placeholder('—'),
                     ]),
                 Section::make('Competitive & Incumbent')
                     ->icon(Heroicon::OutlinedScale)
@@ -80,8 +80,7 @@ class OpportunityInfolist
                     ->components([
                         TextEntry::make('competitive_position')->badge()->color('gray'),
                         TextEntry::make('incumbent')->placeholder('Unknown'),
-                        TextEntry::make('competitive_analysis')->columnSpanFull()->placeholder('—'),
-                        TextEntry::make('competitive_discriminators')->columnSpanFull()->placeholder('—'),
+                        TextEntry::make('competitive_analysis')->html()->columnSpanFull()->placeholder('—'),
                     ]),
                 Section::make('AI Insights')
                     ->icon(Heroicon::OutlinedSparkles)

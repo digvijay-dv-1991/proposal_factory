@@ -35,6 +35,8 @@ use Illuminate\Support\Carbon;
  * @property array<int, string>|null $focus
  * @property array<int, string>|null $keywords
  * @property array<int, string>|null $capture_plan
+ * @property array<int, string>|null $key_points
+ * @property array<int, string>|null $requirement_key_points
  * @property array<int, array{label: string, url: string}>|null $competitive_analysis_sources
  */
 class Opportunity extends Model
@@ -77,6 +79,8 @@ class Opportunity extends Model
         'proposal_manager',
         'source_description',
         'source_requirements',
+        'key_points',
+        'requirement_key_points',
         'description',
         'scope',
         'rfp_instructions',
@@ -90,8 +94,6 @@ class Opportunity extends Model
         'gap_owner',
         'gap_status',
         'competitive_analysis',
-        'competitive_discriminators',
-        'competitive_next_action',
         'competitive_position',
         'competitors',
         'teaming',
@@ -150,6 +152,8 @@ class Opportunity extends Model
             'focus' => 'array',
             'keywords' => 'array',
             'capture_plan' => 'array',
+            'key_points' => 'array',
+            'requirement_key_points' => 'array',
             'competitive_analysis_sources' => 'array',
             'source_title_verified' => 'boolean',
             'value_is_estimated' => 'boolean',

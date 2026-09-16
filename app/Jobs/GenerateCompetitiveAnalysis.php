@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\MarketCompetitor;
 use App\Models\Opportunity;
+use App\Models\OpportunityPartner;
 use App\Services\OpenAiCompetitiveResearchService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -39,7 +40,7 @@ class GenerateCompetitiveAnalysis implements ShouldQueue
      * code, so an unchanged opportunity re-processed after a schema change
      * would otherwise silently get served a stale, incompatible result.
      */
-    private const CACHE_VERSION = 1;
+    private const CACHE_VERSION = 2;
 
     public function __construct(private readonly int $opportunityId) {}
 
@@ -69,6 +70,44 @@ class GenerateCompetitiveAnalysis implements ShouldQueue
         foreach ($result['competitor_profiles'] as $profile) {
             $this->recordCompetitorWebsite($profile);
         }
+
+        $this->recordTeamingRecommendation($opportunity, $result['teaming_recommendation']);
+    }
+
+    /**
+     * Surfaces the AI's teaming recommendation on the actual Teaming tab
+     * (opportunity_partners) instead of leaving it buried in the
+     * Competitive Analysis tab's prose — client review flagged that a real
+     * teaming suggestion previously never reached the Teaming tab. Contact
+     * info lives only here, never in the "teaming" prose field.
+     *
+     * @param  array{company: string|null, contact_email: string|null, contact_phone: string|null, rationale: string}  $recommendation
+     */
+    private function recordTeamingRecommendation(Opportunity $opportunity, array $recommendation): void
+    {
+        $company = trim((string) ($recommendation['company'] ?? ''));
+
+        if ($company === '') {
+            return;
+        }
+
+        $alreadyExists = OpportunityPartner::query()
+            ->where('opportunity_id', $opportunity->id)
+            ->where('company', $company)
+            ->exists();
+
+        if ($alreadyExists) {
+            return;
+        }
+
+        OpportunityPartner::query()->create([
+            'opportunity_id' => $opportunity->id,
+            'company' => $company,
+            'status' => 'AI Recommended',
+            'contact_email' => $recommendation['contact_email'],
+            'contact_phone' => $recommendation['contact_phone'],
+            'rationale' => $recommendation['rationale'],
+        ]);
     }
 
     /**

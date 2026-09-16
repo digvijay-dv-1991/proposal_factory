@@ -5,6 +5,7 @@
  */
 
 import './echo';
+import 'trix';
 
 /**
  * Live-refresh the notification bell over the socket instead of polling —

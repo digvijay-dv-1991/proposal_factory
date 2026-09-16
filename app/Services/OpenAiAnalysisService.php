@@ -26,7 +26,7 @@ class OpenAiAnalysisService
     use SendsOpenAiRequests;
 
     /**
-     * @return array{focus: array<int, string>, gap: string, gap_mitigation: string, go_strength: int, executive_summary: string, why_it_matters: string, red_team_critique: string, competitive_outlook: string}
+     * @return array{focus: array<int, string>, gap: string, gap_mitigation: string, key_points: array<int, string>, requirement_key_points: array<int, string>, go_strength: int, executive_summary: string, why_it_matters: string, red_team_critique: string, competitive_outlook: string}
      */
     public function generate(Opportunity $opportunity): array
     {
@@ -48,8 +48,8 @@ class OpenAiAnalysisService
                         'type' => 'object',
                         'additionalProperties' => false,
                         'required' => [
-                            'focus', 'gap', 'gap_mitigation', 'go_strength', 'executive_summary', 'why_it_matters',
-                            'red_team_critique', 'competitive_outlook',
+                            'focus', 'gap', 'gap_mitigation', 'key_points', 'requirement_key_points', 'go_strength',
+                            'executive_summary', 'why_it_matters', 'red_team_critique', 'competitive_outlook',
                         ],
                         'properties' => [
                             'focus' => [
@@ -60,6 +60,18 @@ class OpenAiAnalysisService
                             ],
                             'gap' => ['type' => 'string'],
                             'gap_mitigation' => ['type' => 'string'],
+                            'key_points' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'string'],
+                                'minItems' => 0,
+                                'maxItems' => 6,
+                            ],
+                            'requirement_key_points' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'string'],
+                                'minItems' => 0,
+                                'maxItems' => 6,
+                            ],
                             'go_strength' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 100],
                             'executive_summary' => ['type' => 'string'],
                             'why_it_matters' => ['type' => 'string'],
@@ -79,7 +91,7 @@ class OpenAiAnalysisService
             throw new RuntimeException('OpenAI returned no readable output for the AI analysis call — see the log for the raw response.');
         }
 
-        /** @var array{focus: array<int, string>, gap: string, gap_mitigation: string, go_strength: int, executive_summary: string, why_it_matters: string, red_team_critique: string, competitive_outlook: string} */
+        /** @var array{focus: array<int, string>, gap: string, gap_mitigation: string, key_points: array<int, string>, requirement_key_points: array<int, string>, go_strength: int, executive_summary: string, why_it_matters: string, red_team_critique: string, competitive_outlook: string} */
         return json_decode($outputText, true, flags: JSON_THROW_ON_ERROR);
     }
 
@@ -91,6 +103,8 @@ class OpenAiAnalysisService
         $existingGap = blank($opportunity->gap)
             ? 'none recorded yet — draft an honest first assessment below'
             : $opportunity->gap;
+        $solicitationText = $opportunity->source_description ?: $opportunity->description;
+        $requirementsText = $opportunity->source_requirements ?: $opportunity->scope;
         $weights = ScoringSetting::current();
         $existingScore = $opportunity->go_strength > 0
             ? "{$opportunity->go_strength}% ({$opportunity->fit_label}) — already scored by a capture manager, do not recompute it, just reference it as given"
@@ -109,6 +123,8 @@ class OpenAiAnalysisService
             Opportunity: {$opportunity->name}
             Agency: {$opportunity->agency}
             Description: {$opportunity->description}
+            Solicitation description (source text to condense for key_points): {$solicitationText}
+            Solicitation requirements (source text to condense for requirement_key_points): {$requirementsText}
             ALQIMI focus areas: {$existingFocus}
             Bid Strength score: {$existingScore}
             Gap / Risk: {$existingGap}
@@ -126,10 +142,13 @@ class OpenAiAnalysisService
             - Vehicle Accessibility ({$weights->vehicle_accessibility_weight}%): an open full-and-open or small-business set-aside ALQIMI qualifies for scores better than a vehicle ALQIMI has no access to.
             A weak-fit opportunity should honestly score low, even 0 — the point is a reasoned, opportunity-specific number, not a flattering default.
 
-            Sections to write (each one dense paragraph, 2-4 sentences, no bullet points, except go_strength and focus):
+            Sections to write (each one dense paragraph, 2-4 sentences, no bullet points, EXCEPT go_strength, focus,
+            gap, gap_mitigation, key_points, and requirement_key_points — see each one's own instructions below):
             - focus: if the ALQIMI focus areas above are already tagged, return that exact same list unchanged. Otherwise determine 2-4 tags yourself from the real Description text — one broad mission-area tag plus 1-3 more specific technical/domain tags, matching the style ALQIMI already uses elsewhere in this system, e.g.: "AI & Advanced Analytics", "CBRN & CWMD", "DoD Intelligence & Ops", "Digitization", "Modernization", "Health", "FOCI", "Enterprise Data Management", "ISR Platforms", "Unmanned Systems", "Knowledge Graphs", "Rapid Acquisition", "Sensor Data Fusion", "Space Systems". Only use tags that genuinely describe what the Description actually asks for — do not force a fit that isn't there; a truly generic notice can validly get generic tags like "Modernization" alone.
-            - gap: if a Gap / Risk is already recorded above, restate it faithfully — do not contradict or replace a capture manager's own assessment. If none is recorded yet, draft an honest first-pass capability/competitive gap assessment using only the fields above, hedging clearly ("further capture assessment needed") wherever the evidence here is thin.
-            - gap_mitigation: a suggested mitigation approach for the gap above, in ALQIMI's "Mitigation approach" voice — concrete next steps, not generic advice.
+            - gap: if a Gap / Risk is already recorded above, restate it faithfully as an HTML bullet list — do not contradict or replace a capture manager's own assessment. If none is recorded yet, draft an honest first-pass capability/competitive gap assessment using only the fields above, hedging clearly ("further capture assessment needed") wherever the evidence here is thin. Format as `<ul><li>...</li></ul>` with 3-5 short bullets (each a terse fragment, not a full sentence) so a reader grasps the gap in a few seconds.
+            - gap_mitigation: a suggested mitigation approach for the gap above, in ALQIMI's "Mitigation approach" voice — concrete next steps, not generic advice. Same format as gap: `<ul><li>...</li></ul>`, 3-5 short bullets.
+            - key_points: 0-6 short, keyword-driven bullet phrases (NOT full sentences) condensing what the "Solicitation description" text above actually says — each phrase should be glanceable in a couple seconds, e.g. "Sole-source PO anticipated, capability statements welcome" rather than a full restated sentence. Return an empty array if the solicitation description text above is blank.
+            - requirement_key_points: same format and length limit as key_points, condensing the "Solicitation requirements" text above instead. Return an empty array if that text is blank.
             - go_strength: an integer 0-100. If the Bid Strength score above is already set by a capture manager, return that exact same number unchanged. Otherwise compute it yourself using the rubric above.
             - executive_summary: what this opportunity is and what the customer actually needs, written the way a government-requirement summary reads (see Description above for the expected tone).
             - why_it_matters: why this is worth ALQIMI's attention — tie it explicitly to the focus areas and the go_strength value above, naming the specific alignment rather than speaking generically.

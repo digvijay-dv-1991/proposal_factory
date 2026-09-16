@@ -268,19 +268,15 @@ class OpportunityForm
                             ->options(array_combine(OpportunityModal::COMPETITIVE_POSITIONS, OpportunityModal::COMPETITIVE_POSITIONS))
                             ->default('Unknown')
                             ->native(false),
-                        TextInput::make('competitive_next_action'),
                         Textarea::make('competitors')
                             ->helperText('One per line, or separated by ";" / ",".')
                             ->autosize()
                             ->rows(2)
                             ->columnSpanFull(),
                         Textarea::make('competitive_analysis')
+                            ->helperText('HTML bullet list — covers position rationale, discriminators, and recommended next action together.')
                             ->autosize()
-                            ->rows(3)
-                            ->columnSpanFull(),
-                        Textarea::make('competitive_discriminators')
-                            ->autosize()
-                            ->rows(3)
+                            ->rows(4)
                             ->columnSpanFull(),
                         Textarea::make('teaming')
                             ->autosize()
