@@ -15,6 +15,7 @@ class OpportunityDecisionColor
             'Bid' => 'success',
             'No Bid' => 'danger',
             'Shape' => 'primary',
+            'Open Call' => 'secondary',
             'More Info' => 'info',
             'Monitoring' => 'warning',
             default => 'gray',

@@ -203,7 +203,7 @@
                                     <label>Solicitation Requirements</label>
                                     <textarea wire:model="form.source_requirements">{{ $form['source_requirements'] }}</textarea>
                                 </div>
-                                @include('livewire.partials.trix-field', ['model' => 'form.gap', 'label' => 'Primary Gap / Risk', 'labelClass' => 'gap-title', 'fieldId' => 'gap-trix-overview'])
+                                @include('livewire.partials.trix-field', ['model' => 'form.gap', 'value' => $form['gap'], 'label' => 'Primary Gap / Risk', 'labelClass' => 'gap-title', 'fieldId' => 'gap-trix-overview'])
                             </div>
                         </div>
 
@@ -513,8 +513,8 @@
                         <div class="panel">
                             <h3>Gap Analysis</h3>
                             <div class="fields">
-                                @include('livewire.partials.trix-field', ['model' => 'form.gap', 'label' => 'Primary Gap / Risk', 'fieldId' => 'gap-trix-tab'])
-                                @include('livewire.partials.trix-field', ['model' => 'form.gap_mitigation', 'label' => 'Gap Mitigation', 'fieldId' => 'gap-mitigation-trix-tab'])
+                                @include('livewire.partials.trix-field', ['model' => 'form.gap', 'value' => $form['gap'], 'label' => 'Primary Gap / Risk', 'fieldId' => 'gap-trix-tab'])
+                                @include('livewire.partials.trix-field', ['model' => 'form.gap_mitigation', 'value' => $form['gap_mitigation'], 'label' => 'Gap Mitigation', 'fieldId' => 'gap-mitigation-trix-tab'])
                                 <div class="field">
                                     <label>Gap Owner</label>
                                     <input type="text" wire:model="form.gap_owner" value="{{ $form['gap_owner'] }}">
@@ -612,7 +612,7 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                @include('livewire.partials.trix-field', ['model' => 'form.competitive_analysis', 'label' => 'Competitive Analysis', 'fieldId' => 'competitive-analysis-trix'])
+                                @include('livewire.partials.trix-field', ['model' => 'form.competitive_analysis', 'value' => $form['competitive_analysis'], 'label' => 'Competitive Analysis', 'fieldId' => 'competitive-analysis-trix'])
                                 <div class="field full">
                                     <label>Known / Likely Competitors</label>
                                     <textarea wire:model="form.competitors">{{ $form['competitors'] }}</textarea>

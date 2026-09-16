@@ -6,31 +6,39 @@ use App\Models\Opportunity;
 use App\Models\OpportunityContact;
 use App\Services\OpenAiContractingOfficerService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
-class DiscoverContractingOfficer implements ShouldQueue
+class DiscoverContractingOfficer implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 2;
+    public int $tries = 3;
 
     /**
-     * A pause before Laravel's own automatic retry (on top of the internal
-     * rate-limit backoff in SendsOpenAiRequests) — a retry fired instantly
-     * after a failure is likely to hit the exact same transient condition
-     * again. Gives whatever caused it a real chance to clear first.
+     * Staged backoff (1 min, then 3 min) — see GenerateAiAnalysis for why
+     * two growing-gap retries beat one fixed-delay retry here.
+     *
+     * @var array<int, int>
      */
-    public int $backoff = 60;
+    public array $backoff = [60, 180];
 
     /**
      * Covers the web-search call's own up-to-3 rate-limit-backoff attempts
      * (see SendsOpenAiRequests) at worst case, not typical runtime.
      */
     public int $timeout = 450;
+
+    /**
+     * Must stay >= $timeout (with margin) — see GenerateAiAnalysis::$uniqueFor.
+     */
+    public int $uniqueFor = 500;
 
     /**
      * Bump whenever OpenAiContractingOfficerService's output shape changes
@@ -42,6 +50,11 @@ class DiscoverContractingOfficer implements ShouldQueue
     private const CACHE_VERSION = 1;
 
     public function __construct(private readonly int $opportunityId) {}
+
+    public function uniqueId(): string
+    {
+        return (string) $this->opportunityId;
+    }
 
     public function handle(OpenAiContractingOfficerService $service): void
     {
@@ -91,6 +104,19 @@ class DiscoverContractingOfficer implements ShouldQueue
             'name' => $name,
             'email' => $officer['email'],
             'phone' => $officer['phone'],
+        ]);
+    }
+
+    /**
+     * All retries exhausted — log it loudly rather than let this fail
+     * silently, leaving an opportunity with no contracting officer info and
+     * no visible sign a discovery attempt was ever made.
+     */
+    public function failed(Throwable $exception): void
+    {
+        Log::error('DiscoverContractingOfficer: permanently failed after all retries.', [
+            'opportunity_id' => $this->opportunityId,
+            'exception' => $exception->getMessage(),
         ]);
     }
 }

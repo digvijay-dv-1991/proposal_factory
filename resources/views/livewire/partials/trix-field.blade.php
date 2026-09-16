@@ -2,8 +2,15 @@
     Shared Trix rich-text field, used wherever a field needs short,
     editable bullet-point content (Gap Analysis, the merged Competitive
     Analysis field). $model is the Livewire-bound dotted path (e.g.
-    "form.gap"); $fieldId must be unique on the page (Trix's custom
-    element binds to a specific hidden input by id).
+    "form.gap"); $value is that same field's current value, rendered
+    directly; $fieldId must be unique on the page (Trix's custom element
+    binds to a specific hidden input by id).
+
+    The hidden input's `value="..."` attribute (not x-model) is what seeds
+    Trix's starting content — Trix reads it the instant its custom element
+    connects to the DOM, which can happen before Alpine's own init pass has
+    written anything via x-model, so relying on x-model alone left the
+    editor starting blank even when the field already had real content.
 --}}
 <div class="field full">
     @if ($label ?? null)
@@ -28,7 +35,7 @@
             },
         }"
     >
-        <input id="{{ $fieldId }}" type="hidden" x-ref="input" x-model="value">
+        <input id="{{ $fieldId }}" type="hidden" x-ref="input" x-model="value" value="{{ $value ?? '' }}">
         <trix-editor x-ref="editor" input="{{ $fieldId }}" x-on:trix-change="value = $refs.input.value"></trix-editor>
     </div>
 </div>

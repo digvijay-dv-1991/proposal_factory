@@ -20,7 +20,7 @@ use Filament\Support\Icons\Heroicon;
 class OpportunityForm
 {
     /**
-     * All 6 values the `decision` DB enum actually holds — matches
+     * All 7 values the `decision` DB enum actually holds — matches
      * OpportunityModal::DECISIONS on the public board.
      *
      * @var array<string, string>
@@ -30,6 +30,7 @@ class OpportunityForm
         'More Info' => 'More Info',
         'Monitoring' => 'Monitoring',
         'Shape' => 'Shape',
+        'Open Call' => 'Open Call',
         'Bid' => 'Bid',
         'No Bid' => 'No Bid',
     ];

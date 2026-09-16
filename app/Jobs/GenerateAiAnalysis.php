@@ -5,25 +5,32 @@ namespace App\Jobs;
 use App\Models\Opportunity;
 use App\Services\OpenAiAnalysisService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
-class GenerateAiAnalysis implements ShouldQueue
+class GenerateAiAnalysis implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 2;
+    public int $tries = 3;
 
     /**
-     * A pause before Laravel's own automatic retry (on top of the internal
-     * rate-limit backoff in SendsOpenAiRequests) — a retry fired instantly
-     * after a failure is likely to hit the exact same transient condition
-     * again. Gives whatever caused it a real chance to clear first.
+     * Staged backoff (1 min, then 3 min) before Laravel's own automatic
+     * retry, on top of the internal rate-limit backoff in
+     * SendsOpenAiRequests — a retry fired instantly after a failure is
+     * likely to hit the exact same transient condition again. Two retries
+     * with growing gaps rides out a longer OpenAI-side blip than a single
+     * fixed-delay retry would.
+     *
+     * @var array<int, int>
      */
-    public int $backoff = 60;
+    public array $backoff = [60, 180];
 
     /**
      * Covers this call's own up-to-3 rate-limit-backoff attempts (see
@@ -32,6 +39,18 @@ class GenerateAiAnalysis implements ShouldQueue
      * is too tight for that worst case.
      */
     public int $timeout = 300;
+
+    /**
+     * Must stay >= $timeout (with margin): the uniqueness lock has to
+     * outlive the job's own worst-case runtime, or it could expire mid-run
+     * and let a second worker pick up the same job — the exact scenario
+     * DB_QUEUE_RETRY_AFTER being left at its 90s default already risks (see
+     * project notes). This is a defense-in-depth guard against that same
+     * failure mode: even if the queue's retry_after is misconfigured, two
+     * concurrent runs for the same opportunity can never both pay for and
+     * apply an OpenAI call.
+     */
+    public int $uniqueFor = 360;
 
     /**
      * Bump this whenever OpenAiAnalysisService's output shape changes
@@ -44,6 +63,11 @@ class GenerateAiAnalysis implements ShouldQueue
     private const CACHE_VERSION = 3;
 
     public function __construct(private readonly int $opportunityId) {}
+
+    public function uniqueId(): string
+    {
+        return (string) $this->opportunityId;
+    }
 
     public function handle(OpenAiAnalysisService $service): void
     {
@@ -120,5 +144,19 @@ class GenerateAiAnalysis implements ShouldQueue
         }
 
         $opportunity->update($updates);
+    }
+
+    /**
+     * All retries exhausted — this must be loud, not silent. Without this,
+     * an opportunity can sit indefinitely with a misleading 0% Bid
+     * Strength / Win Probability and no one would know AI Analysis never
+     * actually ran, since a failed queue job leaves no trace in the UI.
+     */
+    public function failed(Throwable $exception): void
+    {
+        Log::error('GenerateAiAnalysis: permanently failed after all retries.', [
+            'opportunity_id' => $this->opportunityId,
+            'exception' => $exception->getMessage(),
+        ]);
     }
 }
