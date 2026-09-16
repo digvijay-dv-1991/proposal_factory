@@ -13,7 +13,11 @@ Route::get('/opportunities', OpportunityBoard::class)
     ->middleware(['auth'])
     ->name('opportunities.index');
 
-Route::redirect('dashboard', '/opportunities')
+Route::get('dashboard', function () {
+    return auth()->user()->hasRole('Admin')
+        ? redirect('/admin')
+        : redirect()->route('opportunities.index');
+})
     ->middleware(['auth'])
     ->name('dashboard');
 
