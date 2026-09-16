@@ -5,16 +5,18 @@ namespace App\Jobs;
 use App\Models\Opportunity;
 use App\Services\OpenAiOpportunityDiscoveryService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class DiscoverOpportunitiesViaOpenAi implements ShouldQueue
+class DiscoverOpportunitiesViaOpenAi implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -54,10 +56,24 @@ class DiscoverOpportunitiesViaOpenAi implements ShouldQueue
      */
     public int $timeout = 1800;
 
+    /**
+     * A generous margin above $timeout — see GenerateAiAnalysis::$uniqueFor.
+     * A single global lock (not per-limit/per-fresh) on purpose: the user
+     * runs this manually to control OpenAI/quota spend, so two overlapping
+     * runs — whatever their parameters — must never be allowed to fire
+     * concurrently and double the spend.
+     */
+    public int $uniqueFor = 1860;
+
     public function __construct(
         private readonly int $limit,
         private readonly bool $fresh = false,
     ) {}
+
+    public function uniqueId(): string
+    {
+        return 'discover-opportunities-via-openai';
+    }
 
     public function handle(OpenAiOpportunityDiscoveryService $service): void
     {
@@ -109,10 +125,23 @@ class DiscoverOpportunitiesViaOpenAi implements ShouldQueue
         while (count($collected) < $limit) {
             $batchSize = min(self::BATCH_SIZE, $limit - count($collected));
 
-            $batch = $service->discover($batchSize, array_map(
-                fn (array $candidate): string => (string) ($candidate['name'] ?? ''),
-                $collected,
-            ));
+            try {
+                $batch = $service->discover($batchSize, array_map(
+                    fn (array $candidate): string => (string) ($candidate['name'] ?? ''),
+                    $collected,
+                ));
+            } catch (Throwable $exception) {
+                // A failure on this batch (rate limit exhausted, network
+                // blip, malformed response) must not throw away every
+                // candidate already found in earlier batches — those are
+                // still real, paid-for results worth keeping and inserting.
+                Log::error('OpenAI opportunity discovery: a batch failed, keeping what was already found.', [
+                    'collected_so_far' => count($collected),
+                    'exception' => $exception->getMessage(),
+                ]);
+
+                break;
+            }
 
             $newInBatch = 0;
 
@@ -172,6 +201,15 @@ class DiscoverOpportunitiesViaOpenAi implements ShouldQueue
      */
     private function upsert(array $candidate): void
     {
+        if ($this->responseDueHasPassed($candidate)) {
+            Log::info('OpenAI opportunity discovery: dropped a candidate whose response due date has already passed.', [
+                'name' => $candidate['name'] ?? null,
+                'response_due' => $candidate['response_due'] ?? null,
+            ]);
+
+            return;
+        }
+
         $link = $candidate['link'] ?? null;
 
         if (! is_string($link) || $link === '') {
@@ -234,6 +272,31 @@ class DiscoverOpportunitiesViaOpenAi implements ShouldQueue
     }
 
     /**
+     * A dead RFP (response window already closed) isn't realistically
+     * pursuable — dropped before insert rather than left for a human to
+     * notice later. A missing/unparseable due date is NOT treated as
+     * passed (RFIs, Sources Sought, and standing vehicles legitimately
+     * have none) — only a real date that has actually elapsed disqualifies
+     * a candidate.
+     *
+     * @param  array<string, mixed>  $candidate
+     */
+    private function responseDueHasPassed(array $candidate): bool
+    {
+        $responseDue = $candidate['response_due'] ?? null;
+
+        if (! is_string($responseDue) || $responseDue === '') {
+            return false;
+        }
+
+        try {
+            return Carbon::parse($responseDue)->startOfDay()->isPast();
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * A candidate's link must actually resolve before it's worth inserting
      * — a capture manager needs to be able to click through and verify the
      * notice on SAM.gov or wherever it's actually posted.
@@ -252,5 +315,20 @@ class DiscoverOpportunitiesViaOpenAi implements ShouldQueue
         } catch (Throwable) {
             return false;
         }
+    }
+
+    /**
+     * With batch-level failures now handled gracefully above, reaching here
+     * means something broke before any batch could even run — worth
+     * logging loudly rather than letting a manually-triggered, quota-aware
+     * discovery run vanish without a trace.
+     */
+    public function failed(Throwable $exception): void
+    {
+        Log::error('DiscoverOpportunitiesViaOpenAi: permanently failed.', [
+            'limit' => $this->limit,
+            'fresh' => $this->fresh,
+            'exception' => $exception->getMessage(),
+        ]);
     }
 }

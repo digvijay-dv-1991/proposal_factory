@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use App\Livewire\OpportunityBoard;
+use App\Models\Opportunity;
 use App\Services\Concerns\ExtractsOpenAiOutputText;
 use App\Services\Concerns\SendsOpenAiRequests;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -123,6 +126,7 @@ class OpenAiOpportunityDiscoveryService
             these again, find genuinely different opportunities instead:
             {$this->excludeList($exclude)}
             BLOCK;
+        $decisionHistoryBlock = $this->decisionHistoryBlock();
 
         return <<<PROMPT
             You are a government-contracting capture analyst performing the same
@@ -145,6 +149,7 @@ class OpenAiOpportunityDiscoveryService
             it. Return at most {$limit} opportunities: the most relevant,
             currently-open, real notices you can verify via search.
             {$exclusionBlock}
+            {$decisionHistoryBlock}
             Hard rules:
             - Never invent a title, agency, solicitation number, dollar value, or
               URL. Only report opportunities you can actually verify via search
@@ -155,6 +160,10 @@ class OpenAiOpportunityDiscoveryService
               rather than guessing a URL or linking to an aggregator.
             - Skip anything already closed, cancelled, or awarded — only
               currently-actionable notices.
+            - Skip anything whose response due date has already passed as of
+              today ({$today}) — a closed response window can't realistically be
+              pursued. If no due date is published or found, that's fine, include
+              it as usual.
             - For any field you cannot confirm (agency_subsection, solicitation,
               naics, response_due, release_date, vehicle, set_aside), return null
               rather than guessing.
@@ -193,5 +202,76 @@ class OpenAiOpportunityDiscoveryService
     private function excludeList(array $exclude): string
     {
         return implode("\n", array_map(fn (string $item): string => "- {$item}", $exclude));
+    }
+
+    /**
+     * Real Bid/No-Bid decisions, with the capture manager's own recorded
+     * rationale, as in-context examples — this is how the search actually
+     * gets more accurate over time without any model fine-tuning: a No Bid
+     * declined as "out of scope of work" should discourage similar scope
+     * next time, but a No Bid declined only for lack of time/resources
+     * describes a genuinely good-fit opportunity and must NOT discourage
+     * similar ones — the distinction the rationale text itself makes, not
+     * a NAICS code or category, which is exactly why this is fed as real
+     * examples for the model to reason over rather than a rigid filter.
+     */
+    private function decisionHistoryBlock(): string
+    {
+        $noBid = $this->recentDecisions('No Bid');
+        $bid = $this->recentDecisions('Bid');
+
+        if ($noBid->isEmpty() && $bid->isEmpty()) {
+            return '';
+        }
+
+        $noBidExamples = $noBid->isEmpty() ? 'None recorded yet.' : $this->decisionExamples($noBid);
+        $bidExamples = $bid->isEmpty() ? 'None recorded yet.' : $this->decisionExamples($bid);
+
+        return <<<BLOCK
+
+            Real past decisions, with the capture manager's own stated reason for
+            each — use these to judge fit the way an experienced capture manager
+            would, not as a rigid keyword or category filter:
+
+            Previously declined (No Bid) — read each reason carefully. If it says
+            the opportunity itself was a poor match (e.g. out of scope, wrong type
+            of work, wrong customer), avoid surfacing closely similar scope of
+            work again. If the reason is something else entirely (e.g. not enough
+            time, staff, or resources at the time — not a fit judgment), that
+            opportunity was actually fine — do NOT treat it as a signal to avoid
+            similar work, that opportunity type remains worth finding:
+            {$noBidExamples}
+
+            Previously pursued (Bid) — real examples of exactly the kind of work
+            worth finding more of:
+            {$bidExamples}
+
+            BLOCK;
+    }
+
+    /**
+     * @return Collection<int, Opportunity>
+     */
+    private function recentDecisions(string $decision): Collection
+    {
+        return Opportunity::query()
+            ->where('decision', $decision)
+            ->whereNotNull('decision_comment')
+            ->where('decision_comment', '!=', '')
+            ->latest('updated_at')
+            ->limit(15)
+            ->get(['name', 'description', 'decision_comment']);
+    }
+
+    /**
+     * @param  Collection<int, Opportunity>  $decisions
+     */
+    private function decisionExamples(Collection $decisions): string
+    {
+        return implode("\n", $decisions->map(function (Opportunity $opportunity): string {
+            $description = Str::limit((string) $opportunity->description, 200);
+
+            return "- \"{$opportunity->name}\" — {$description} | Reason: {$opportunity->decision_comment}";
+        })->all());
     }
 }

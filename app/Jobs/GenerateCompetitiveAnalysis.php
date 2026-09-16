@@ -7,31 +7,43 @@ use App\Models\Opportunity;
 use App\Models\OpportunityPartner;
 use App\Services\OpenAiCompetitiveResearchService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
-class GenerateCompetitiveAnalysis implements ShouldQueue
+class GenerateCompetitiveAnalysis implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 2;
+    public int $tries = 3;
 
     /**
-     * A pause before Laravel's own automatic retry (on top of the internal
-     * rate-limit backoff in SendsOpenAiRequests) — a retry fired instantly
-     * after a failure is likely to hit the exact same transient condition
-     * again. Gives whatever caused it a real chance to clear first.
+     * Staged backoff (1 min, then 3 min) — see GenerateAiAnalysis for why
+     * two growing-gap retries beat one fixed-delay retry here.
+     *
+     * @var array<int, int>
      */
-    public int $backoff = 60;
+    public array $backoff = [60, 180];
 
     /**
      * Covers the web-search call's own up-to-3 rate-limit-backoff attempts
      * (see SendsOpenAiRequests) at worst case, not typical runtime.
      */
     public int $timeout = 450;
+
+    /**
+     * Must stay >= $timeout (with margin) — see GenerateAiAnalysis::$uniqueFor
+     * for why: this is what actually stops a second worker from re-running
+     * (and re-paying for) the same opportunity's research if
+     * DB_QUEUE_RETRY_AFTER is ever left too low relative to this job's
+     * runtime.
+     */
+    public int $uniqueFor = 500;
 
     /**
      * Bump whenever OpenAiCompetitiveResearchService's output shape changes
@@ -43,6 +55,11 @@ class GenerateCompetitiveAnalysis implements ShouldQueue
     private const CACHE_VERSION = 2;
 
     public function __construct(private readonly int $opportunityId) {}
+
+    public function uniqueId(): string
+    {
+        return (string) $this->opportunityId;
+    }
 
     public function handle(OpenAiCompetitiveResearchService $service): void
     {
@@ -133,5 +150,19 @@ class GenerateCompetitiveAnalysis implements ShouldQueue
             ->where('name', $name)
             ->where(fn ($query) => $query->whereNull('url')->orWhere('url', ''))
             ->update(['url' => $url]);
+    }
+
+    /**
+     * All retries exhausted — log it loudly rather than let a Competitive
+     * Analysis silently never generate (an opportunity could otherwise sit
+     * with an empty tab and no teaming recommendation forever, with nothing
+     * in the UI to show a run was ever attempted).
+     */
+    public function failed(Throwable $exception): void
+    {
+        Log::error('GenerateCompetitiveAnalysis: permanently failed after all retries.', [
+            'opportunity_id' => $this->opportunityId,
+            'exception' => $exception->getMessage(),
+        ]);
     }
 }

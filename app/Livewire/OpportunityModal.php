@@ -22,7 +22,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -51,7 +50,7 @@ class OpportunityModal extends Component
         'Contracting Officers',
     ];
 
-    public const DECISIONS = ['Pending', 'More Info', 'Monitoring', 'Shape', 'Bid', 'No Bid'];
+    public const DECISIONS = ['Pending', 'More Info', 'Monitoring', 'Shape', 'Open Call', 'Bid', 'No Bid'];
 
     public const COMPETITIVE_POSITIONS = ['Strong', 'Moderate', 'Weak', 'Unknown'];
 
@@ -363,15 +362,31 @@ class OpportunityModal extends Component
     /**
      * Live-refresh hook for the socket-pushed comment event (see
      * OpportunityBidCommentObserver) — scoped to this opportunity's own
-     * channel via Livewire's {opportunity.id} interpolation, so it's only
-     * ever triggered while this exact opportunity's modal is open on a
-     * viewer's screen. Reuses refreshBidComments() as-is, so a comment
-     * posted from this same modal never shows up duplicated.
+     * channel. Registered dynamically via getListeners() rather than
+     * Livewire's #[On('...{opportunity.id}...')] placeholder syntax,
+     * because that placeholder is evaluated unconditionally on every
+     * mount — including the new-opportunity form, where $this->opportunity
+     * is a not-yet-saved model with no id, which made Livewire throw.
+     * Reuses refreshBidComments() as-is, so a comment posted from this
+     * same modal never shows up duplicated.
      */
-    #[On('echo-private:opportunity.{opportunity.id}.comments,BidCommentPosted')]
     public function handleBidCommentPosted(): void
     {
         $this->refreshBidComments();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function getListeners(): array
+    {
+        if (! $this->opportunity->exists) {
+            return [];
+        }
+
+        return [
+            "echo-private:opportunity.{$this->opportunity->id}.comments,BidCommentPosted" => 'handleBidCommentPosted',
+        ];
     }
 
     /**
