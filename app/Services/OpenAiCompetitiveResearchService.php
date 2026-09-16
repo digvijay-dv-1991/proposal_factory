@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Opportunity;
-use Illuminate\Support\Facades\Http;
+use App\Services\Concerns\ExtractsOpenAiOutputText;
+use App\Services\Concerns\SendsOpenAiRequests;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
@@ -12,17 +14,17 @@ use RuntimeException;
  * with a source link, and anything the search can't verify gets an honest
  * hedge sentence ("Unknown", "None identified", "TBD") rather than a
  * fabricated answer, matching ALQIMI's existing house style for this data.
- * See the Responses API's web_search tool docs; this is the one part of the
- * AI integration that needs to be re-verified against a live API key once
- * one is available, since it can't be tested without one.
  */
 class OpenAiCompetitiveResearchService
 {
+    use ExtractsOpenAiOutputText;
+    use SendsOpenAiRequests;
+
     /**
      * @var array<int, string>
      */
     private const FIELDS = [
-        'competitive_position', 'competitive_analysis', 'competitive_discriminators', 'competitive_next_action',
+        'competitive_position', 'competitive_analysis',
         'competitors', 'teaming', 'rfp_instructions', 'rfp_sections', 'rfp_format', 'evaluation_factors',
         'incumbent', 'incumbent_contract', 'incumbent_award_value', 'incumbent_period', 'incumbent_brief',
         'incumbent_performance', 'incumbent_strengths', 'incumbent_weaknesses', 'incumbent_customer_relationship',
@@ -30,7 +32,7 @@ class OpenAiCompetitiveResearchService
     ];
 
     /**
-     * @return array{fields: array<string, string>, sources: array<int, array{label: string, url: string}>}
+     * @return array{fields: array<string, string>, sources: array<int, array{label: string, url: string}>, competitor_profiles: array<int, array{name: string, url: string|null}>, teaming_recommendation: array{company: string|null, contact_email: string|null, contact_phone: string|null, rationale: string}}
      */
     public function generate(Opportunity $opportunity): array
     {
@@ -40,27 +42,30 @@ class OpenAiCompetitiveResearchService
             throw new RuntimeException('OpenAI is not configured yet — add OPENAI_API_KEY to .env.');
         }
 
-        $response = Http::withToken($apiKey)
-            ->timeout(120)
-            ->post('https://api.openai.com/v1/responses', [
-                'model' => config('services.openai.model'),
-                'tools' => [['type' => 'web_search']],
-                'input' => $this->buildPrompt($opportunity),
-                'text' => [
-                    'format' => [
-                        'type' => 'json_schema',
-                        'name' => 'opportunity_competitive_research',
-                        'strict' => true,
-                        'schema' => $this->schema(),
-                    ],
+        $response = $this->callOpenAi($apiKey, [
+            'model' => config('services.openai.model'),
+            'tools' => [['type' => 'web_search']],
+            'input' => $this->buildPrompt($opportunity),
+            'text' => [
+                'format' => [
+                    'type' => 'json_schema',
+                    'name' => 'opportunity_competitive_research',
+                    'strict' => true,
+                    'schema' => $this->schema(),
                 ],
-            ])
-            ->throw();
+            ],
+        ], timeout: 120);
 
-        /** @var array{fields: array<string, string>, sources: array<int, array{label: string, url: string}>} */
-        $decoded = json_decode((string) $response->json('output_text'), true, flags: JSON_THROW_ON_ERROR);
+        $outputText = $this->extractOutputText($response->json() ?? []);
 
-        return $decoded;
+        if (blank($outputText)) {
+            Log::error('OpenAI competitive research: could not find a message output_text.', ['response' => $response->json()]);
+
+            throw new RuntimeException('OpenAI returned no readable output for the competitive research call — see the log for the raw response.');
+        }
+
+        /** @var array{fields: array<string, string>, sources: array<int, array{label: string, url: string}>, competitor_profiles: array<int, array{name: string, url: string|null}>, teaming_recommendation: array{company: string|null, contact_email: string|null, contact_phone: string|null, rationale: string}} */
+        return json_decode($outputText, true, flags: JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -73,13 +78,24 @@ class OpenAiCompetitiveResearchService
         return [
             'type' => 'object',
             'additionalProperties' => false,
-            'required' => ['fields', 'sources'],
+            'required' => ['fields', 'sources', 'competitor_profiles', 'teaming_recommendation'],
             'properties' => [
                 'fields' => [
                     'type' => 'object',
                     'additionalProperties' => false,
                     'required' => self::FIELDS,
                     'properties' => $fieldProperties,
+                ],
+                'teaming_recommendation' => [
+                    'type' => 'object',
+                    'additionalProperties' => false,
+                    'required' => ['company', 'contact_email', 'contact_phone', 'rationale'],
+                    'properties' => [
+                        'company' => ['type' => ['string', 'null']],
+                        'contact_email' => ['type' => ['string', 'null']],
+                        'contact_phone' => ['type' => ['string', 'null']],
+                        'rationale' => ['type' => 'string'],
+                    ],
                 ],
                 'sources' => [
                     'type' => 'array',
@@ -90,6 +106,18 @@ class OpenAiCompetitiveResearchService
                         'properties' => [
                             'label' => ['type' => 'string'],
                             'url' => ['type' => 'string'],
+                        ],
+                    ],
+                ],
+                'competitor_profiles' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'required' => ['name', 'url'],
+                        'properties' => [
+                            'name' => ['type' => 'string'],
+                            'url' => ['type' => ['string', 'null']],
                         ],
                     ],
                 ],
@@ -125,40 +153,29 @@ class OpenAiCompetitiveResearchService
             - "competitive_position" must be exactly one of: Strong, Moderate, Weak,
               Unknown — pick Unknown if the evidence doesn't clearly support Strong,
               Moderate, or Weak.
+            - Never put contact details (email, phone) anywhere in "fields" or
+              "sources" — contact info may ONLY appear inside
+              "teaming_recommendation", never in the competitive_analysis prose or
+              anywhere else. This keeps competitor/incumbent research and teaming
+              contact info in clearly separate places.
 
             House style examples (content is from other opportunities, for style
             reference only — do not reuse any of these facts):
 
-            competitive_analysis (one dense paragraph, ~500-650 characters: who the
-            likely competitors are and why they're positioned well, ALQIMI's specific
-            named differentiators, then a credibility caveat):
-            "Sancorp Consulting is the reported incumbent and appears to benefit from
-            direct ICD 731 execution experience, customer familiarity, cleared staff,
-            and established assessment workflows. ALQIMI has strong technical and
-            analytical relevance but a weaker contractual position because of the
-            SDVOSB restriction and the likely importance of direct FBI or IC
-            acquisition-security past performance. The most credible competitive
-            position is as a specialized subcontractor strengthening an eligible prime
-            with scalable OSINT, entity-resolution, FOCI/SCRM, and risk-scoring
-            capabilities."
-
-            competitive_discriminators (paragraph ending with how the proposal should
-            frame the capability, not just stating it):
-            "ALQIMI can support the prime and FBI ASU with a governed, source-traceable
-            analytical workflow that connects corporate ownership, beneficial
-            ownership, key management personnel, foreign affiliations, sanctions,
-            litigation, financial, research, intellectual-property, cyber,
-            supply-chain, adverse-media, and other PAI/CAI indicators. The value
-            proposition is to help analysts conduct deeper and more consistent company
-            threat assessments while preserving human review and Government control of
-            final threat scoring."
-
-            competitive_next_action (one sentence, imperative comma-separated action
-            list — concrete B&P-stage next steps):
-            "Confirm prime eligibility, identify and contact qualified SDVOSB
-            partners, validate clearance requirements, obtain the official
-            solicitation or acquisition forecast, and prepare a concise
-            partner-facing capability package tied to the CTA workflow."
+            competitive_analysis (an HTML bullet list, `<ul><li>...</li></ul>`, of
+            3-5 short bullets covering: who the likely competitors are and why
+            they're positioned well, ALQIMI's specific named differentiators, the
+            recommended next action, then a credibility caveat — each bullet a terse
+            fragment, not a full paragraph, so a reader grasps the competitive
+            picture in one glance):
+            "<ul><li>Sancorp Consulting is the reported incumbent, with direct ICD
+            731 execution experience, customer familiarity, and cleared staff</li>
+            <li>ALQIMI has strong technical/analytical relevance but a weaker
+            contractual position due to the SDVOSB restriction</li><li>Most credible
+            path: specialized subcontractor offering scalable OSINT,
+            entity-resolution, FOCI/SCRM, and risk-scoring capabilities</li>
+            <li>Next action: confirm prime eligibility and contact qualified SDVOSB
+            partners</li></ul>"
 
             competitors (one short sentence — plain company names if a specific one is
             known, otherwise a generic category list):
@@ -189,18 +206,44 @@ class OpenAiCompetitiveResearchService
             incumbent_source (a citation of where the info came from):
             "GovWin Opportunity 234282" or the actual URL/page name you used.
 
-            Return JSON with two top-level keys: "fields" (an object with one entry
-            per field below) and "sources" (an array of {label, url} — every source
-            page you actually used to write a specific fact, not a hedge).
+            Return JSON with four top-level keys: "fields" (an object with one
+            entry per field below), "sources" (an array of {label, url} — every
+            source page you actually used to write a specific fact, not a hedge),
+            "competitor_profiles" (see below), and "teaming_recommendation" (see
+            below).
 
             Fields to fill:
-            - competitive_position, competitive_analysis, competitive_discriminators, competitive_next_action
+            - competitive_position, competitive_analysis (see the HTML-bullet-list format and example above — it now also covers what used to be separate "discriminators" and "next action" fields, as their own bullets within the same list)
             - competitors (names of known/likely competitors, one per line)
-            - teaming (a recommended teaming strategy, only if the evidence supports one — otherwise an honest hedge)
+            - teaming (a recommended teaming strategy, strategy/rationale ONLY — never a company's contact details, those belong only in teaming_recommendation below — only if the evidence supports one, otherwise an honest hedge)
             - rfp_instructions, rfp_sections, rfp_format, evaluation_factors (from the actual solicitation, if found — otherwise an honest hedge)
             - incumbent, incumbent_contract, incumbent_award_value, incumbent_period
             - incumbent_brief, incumbent_performance, incumbent_strengths, incumbent_weaknesses, incumbent_customer_relationship
             - incumbent_source (the URL that verifies the incumbent)
+
+            competitor_profiles: one entry for every specific, named company you
+            reported above (the incumbent plus each named competitor — skip generic
+            category descriptions with no named company). Each entry has:
+            - name: the exact company name as used in the fields above.
+            - url: that company's real official website homepage, ONLY if you
+              actually found and can verify one via search — otherwise null. Never
+              guess a company's website from its name.
+
+            teaming_recommendation: a single structured recommendation, separate
+            from the "teaming" prose field above, used to auto-populate ALQIMI's
+            actual Teaming tab (not just describe a strategy):
+            - company: the one specific company name your "teaming" strategy
+              recommends teaming with, ONLY if the evidence genuinely supports a
+              specific named company — otherwise null. Never invent a plausible-
+              sounding company; a generic "look for a qualified partner" strategy
+              with no specific evidenced company must return null here.
+            - contact_email / contact_phone: a real business-development or capture
+              contact for that company, ONLY if you actually found one via search
+              (e.g. on the company's own site) — otherwise null. Do not guess a
+              likely-looking email/phone format; most solicitations won't surface
+              this, and null is the expected, honest answer far more often than not.
+            - rationale: one short sentence on why this company, for context on the
+              Teaming tab entry it creates.
             PROMPT;
     }
 }

@@ -16,9 +16,16 @@ return [
 
     'openai' => [
         'key' => env('OPENAI_API_KEY'),
-        // Must support the Responses API's hosted web_search tool for the
-        // Competitive Analysis research call.
-        'model' => env('OPENAI_MODEL', 'gpt-4.1'),
+        // Client's authorized model is gpt-5.6-terra (must support the
+        // Responses API's hosted web_search tool for the Competitive
+        // Analysis / Contracting Officer research calls) — the fallback
+        // here matches that so a missing OPENAI_MODEL env var on a server
+        // can never silently substitute an unauthorized model.
+        'model' => env('OPENAI_MODEL', 'gpt-5.6-terra'),
+    ],
+
+    'sam_gov' => [
+        'key' => env('SAM_GOV_API_KEY'),
     ],
 
     'postmark' => [

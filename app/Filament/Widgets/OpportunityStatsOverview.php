@@ -31,7 +31,14 @@ class OpportunityStatsOverview extends StatsOverviewWidget
     protected function getStats(): array
     {
         $totalCount = Opportunity::query()->count();
-        $openValue = (float) Opportunity::query()->where('decision', '!=', 'No Bid')->sum('value');
+        $openValue = (float) Opportunity::query()
+            ->where('decision', '!=', 'No Bid')
+            ->where('value_is_estimated', false)
+            ->sum('value');
+        $estimatedValue = (float) Opportunity::query()
+            ->where('decision', '!=', 'No Bid')
+            ->where('value_is_estimated', true)
+            ->sum('value');
         $pendingCount = Opportunity::query()->where('decision', 'Pending')->count();
         $bidCount = Opportunity::query()->where('decision', 'Bid')->count();
         $noBidCount = Opportunity::query()->where('decision', 'No Bid')->count();
@@ -45,10 +52,14 @@ class OpportunityStatsOverview extends StatsOverviewWidget
                 ->descriptionIcon(Heroicon::OutlinedRectangleStack)
                 ->color('gray'),
             Stat::make('Open pipeline', CompactNumber::money($openValue))
-                ->description('Total value across everything not marked No Bid')
+                ->description('Confirmed value only, everything not marked No Bid')
                 ->descriptionIcon(Heroicon::OutlinedBanknotes)
                 ->chart(self::dailyValueAddedTrend())
                 ->color('primary'),
+            Stat::make('+ Estimated pipeline', CompactNumber::money($estimatedValue))
+                ->description('AI-estimated value where nothing is officially published — not confirmed')
+                ->descriptionIcon(Heroicon::OutlinedSparkles)
+                ->color('gray'),
             Stat::make('Awaiting decision', (string) $pendingCount)
                 ->description('Opportunities still marked Pending')
                 ->descriptionIcon(Heroicon::OutlinedClock)
@@ -81,6 +92,7 @@ class OpportunityStatsOverview extends StatsOverviewWidget
     {
         $totals = Opportunity::query()
             ->where('date_added', '>=', now()->subDays(self::TREND_DAYS - 1)->toDateString())
+            ->where('value_is_estimated', false)
             ->selectRaw('date_added, SUM(value) as total')
             ->groupBy('date_added')
             ->pluck('total', 'date_added');

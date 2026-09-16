@@ -10,9 +10,6 @@ class OpportunityContact extends Model
     protected $fillable = [
         'opportunity_id',
         'name',
-        'title',
-        'organization',
-        'role',
         'email',
         'phone',
     ];

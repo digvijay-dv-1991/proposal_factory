@@ -12,6 +12,8 @@ class OpportunityPartner extends Model
         'company',
         'role',
         'status',
+        'contact_email',
+        'contact_phone',
         'capability',
         'rationale',
     ];

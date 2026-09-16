@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Jobs\DiscoverContractingOfficer;
 use App\Jobs\GenerateAiAnalysis;
 use App\Jobs\GenerateCompetitiveAnalysis;
 use App\Models\Opportunity;
@@ -49,7 +50,7 @@ class OpportunityModal extends Component
         'Contracting Officers',
     ];
 
-    public const DECISIONS = ['Pending', 'More Info', 'Monitoring', 'Shape', 'Bid', 'No Bid'];
+    public const DECISIONS = ['Pending', 'More Info', 'Monitoring', 'Shape', 'Open Call', 'Bid', 'No Bid'];
 
     public const COMPETITIVE_POSITIONS = ['Strong', 'Moderate', 'Weak', 'Unknown'];
 
@@ -98,8 +99,8 @@ class OpportunityModal extends Component
         'name', 'agency', 'agency_subsection', 'solicitation', 'naics', 'psc', 'value', 'vehicle', 'set_aside',
         'phase', 'decision', 'date_added', 'response_due', 'link', 'govwin_link', 'alqimi_sme',
         'origin', 'next_action', 'action_due', 'source_description', 'source_requirements',
-        'gap', 'gap_mitigation', 'gap_owner', 'gap_status', 'competitive_analysis', 'competitive_discriminators',
-        'competitive_next_action', 'incumbent', 'competitors', 'competitive_position', 'teaming', 'rfp_instructions',
+        'gap', 'gap_mitigation', 'gap_owner', 'gap_status', 'competitive_analysis',
+        'incumbent', 'competitors', 'competitive_position', 'teaming', 'rfp_instructions',
         'rfp_sections', 'rfp_format', 'evaluation_factors', 'probability', 'incumbent_contract',
         'incumbent_award_value', 'incumbent_period', 'incumbent_brief', 'incumbent_performance',
         'incumbent_strengths', 'incumbent_weaknesses', 'incumbent_customer_relationship', 'incumbent_source',
@@ -152,27 +153,29 @@ class OpportunityModal extends Component
 
     /**
      * Contracting Officers tab — array-backed, see $form's docblock for why.
+     * Trimmed to Name/Email/Phone only per client review (Title/
+     * Organization/Role were dropped as useless fields).
      *
-     * @var array<int, array{id: int, name: string, title: ?string, organization: ?string, role: ?string, email: ?string, phone: ?string}>
+     * @var array<int, array{id: int, name: string, email: ?string, phone: ?string}>
      */
     public array $contacts = [];
 
     /**
-     * @var array{name: string, title: string, organization: string, role: string, email: string, phone: string}
+     * @var array{name: string, email: string, phone: string}
      */
-    public array $newContact = ['name' => '', 'title' => '', 'organization' => '', 'role' => '', 'email' => '', 'phone' => ''];
+    public array $newContact = ['name' => '', 'email' => '', 'phone' => ''];
 
     /**
      * Teaming tab — array-backed, see $form's docblock for why.
      *
-     * @var array<int, array{id: int, company: string, role: ?string, status: ?string, capability: ?string, rationale: ?string}>
+     * @var array<int, array{id: int, company: string, role: ?string, status: ?string, contact_email: ?string, contact_phone: ?string, capability: ?string, rationale: ?string}>
      */
     public array $partners = [];
 
     /**
-     * @var array{company: string, role: string, status: string, capability: string, rationale: string}
+     * @var array{company: string, role: string, status: string, contact_email: string, contact_phone: string, capability: string, rationale: string}
      */
-    public array $newPartner = ['company' => '', 'role' => '', 'status' => '', 'capability' => '', 'rationale' => ''];
+    public array $newPartner = ['company' => '', 'role' => '', 'status' => '', 'contact_email' => '', 'contact_phone' => '', 'capability' => '', 'rationale' => ''];
 
     /**
      * Updates tab — array-backed, see $form's docblock for why.
@@ -289,9 +292,6 @@ class OpportunityModal extends Component
             ->map(fn (OpportunityContact $contact): array => [
                 'id' => $contact->id,
                 'name' => $contact->name,
-                'title' => $contact->title,
-                'organization' => $contact->organization,
-                'role' => $contact->role,
                 'email' => $contact->email,
                 'phone' => $contact->phone,
             ])
@@ -306,6 +306,8 @@ class OpportunityModal extends Component
                 'company' => $partner->company,
                 'role' => $partner->role,
                 'status' => $partner->status,
+                'contact_email' => $partner->contact_email,
+                'contact_phone' => $partner->contact_phone,
                 'capability' => $partner->capability,
                 'rationale' => $partner->rationale,
             ])
@@ -355,6 +357,36 @@ class OpportunityModal extends Component
                 ];
             })
             ->all();
+    }
+
+    /**
+     * Live-refresh hook for the socket-pushed comment event (see
+     * OpportunityBidCommentObserver) — scoped to this opportunity's own
+     * channel. Registered dynamically via getListeners() rather than
+     * Livewire's #[On('...{opportunity.id}...')] placeholder syntax,
+     * because that placeholder is evaluated unconditionally on every
+     * mount — including the new-opportunity form, where $this->opportunity
+     * is a not-yet-saved model with no id, which made Livewire throw.
+     * Reuses refreshBidComments() as-is, so a comment posted from this
+     * same modal never shows up duplicated.
+     */
+    public function handleBidCommentPosted(): void
+    {
+        $this->refreshBidComments();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function getListeners(): array
+    {
+        if (! $this->opportunity->exists) {
+            return [];
+        }
+
+        return [
+            "echo-private:opportunity.{$this->opportunity->id}.comments,BidCommentPosted" => 'handleBidCommentPosted',
+        ];
     }
 
     /**
@@ -523,15 +555,12 @@ class OpportunityModal extends Component
     {
         $this->validate([
             'newContact.name' => ['required', 'string', 'max:255'],
-            'newContact.title' => ['nullable', 'string', 'max:255'],
-            'newContact.organization' => ['nullable', 'string', 'max:255'],
-            'newContact.role' => ['nullable', 'string', 'max:255'],
             'newContact.email' => ['nullable', 'email', 'max:255'],
             'newContact.phone' => ['nullable', 'string', 'max:255'],
         ]);
 
         $this->opportunity->contacts()->create($this->newContact);
-        $this->newContact = ['name' => '', 'title' => '', 'organization' => '', 'role' => '', 'email' => '', 'phone' => ''];
+        $this->newContact = ['name' => '', 'email' => '', 'phone' => ''];
         $this->refreshContacts();
     }
 
@@ -539,9 +568,6 @@ class OpportunityModal extends Component
     {
         $this->validate([
             "contacts.{$index}.name" => ['required', 'string', 'max:255'],
-            "contacts.{$index}.title" => ['nullable', 'string', 'max:255'],
-            "contacts.{$index}.organization" => ['nullable', 'string', 'max:255'],
-            "contacts.{$index}.role" => ['nullable', 'string', 'max:255'],
             "contacts.{$index}.email" => ['nullable', 'email', 'max:255'],
             "contacts.{$index}.phone" => ['nullable', 'string', 'max:255'],
         ]);
@@ -549,9 +575,6 @@ class OpportunityModal extends Component
         $row = $this->contacts[$index];
         $this->opportunity->contacts()->whereKey($row['id'])->update([
             'name' => $row['name'],
-            'title' => $row['title'],
-            'organization' => $row['organization'],
-            'role' => $row['role'],
             'email' => $row['email'],
             'phone' => $row['phone'],
         ]);
@@ -569,12 +592,14 @@ class OpportunityModal extends Component
             'newPartner.company' => ['required', 'string', 'max:255'],
             'newPartner.role' => ['nullable', 'string', 'max:255'],
             'newPartner.status' => ['nullable', 'string', 'max:255'],
+            'newPartner.contact_email' => ['nullable', 'email', 'max:255'],
+            'newPartner.contact_phone' => ['nullable', 'string', 'max:255'],
             'newPartner.capability' => ['nullable', 'string'],
             'newPartner.rationale' => ['nullable', 'string'],
         ]);
 
         $this->opportunity->partners()->create($this->newPartner);
-        $this->newPartner = ['company' => '', 'role' => '', 'status' => '', 'capability' => '', 'rationale' => ''];
+        $this->newPartner = ['company' => '', 'role' => '', 'status' => '', 'contact_email' => '', 'contact_phone' => '', 'capability' => '', 'rationale' => ''];
         $this->refreshPartners();
     }
 
@@ -584,6 +609,8 @@ class OpportunityModal extends Component
             "partners.{$index}.company" => ['required', 'string', 'max:255'],
             "partners.{$index}.role" => ['nullable', 'string', 'max:255'],
             "partners.{$index}.status" => ['nullable', 'string', 'max:255'],
+            "partners.{$index}.contact_email" => ['nullable', 'email', 'max:255'],
+            "partners.{$index}.contact_phone" => ['nullable', 'string', 'max:255'],
             "partners.{$index}.capability" => ['nullable', 'string'],
             "partners.{$index}.rationale" => ['nullable', 'string'],
         ]);
@@ -593,6 +620,8 @@ class OpportunityModal extends Component
             'company' => $row['company'],
             'role' => $row['role'],
             'status' => $row['status'],
+            'contact_email' => $row['contact_email'],
+            'contact_phone' => $row['contact_phone'],
             'capability' => $row['capability'],
             'rationale' => $row['rationale'],
         ]);
@@ -783,6 +812,8 @@ class OpportunityModal extends Component
     {
         $this->validate($this->rules());
 
+        $isNewOpportunity = ! $this->opportunity->exists;
+
         $this->opportunity->fill($this->form);
 
         if (! $this->opportunity->has_required_source) {
@@ -801,6 +832,15 @@ class OpportunityModal extends Component
         }
 
         $this->opportunity->save();
+
+        // Same automatic first-pass AI Analysis (Bid Strength / Win
+        // Probability, Gap Analysis draft, narrative sections) that an
+        // AI-discovered opportunity gets — a manually-created one shouldn't
+        // sit at a misleading 0% until someone remembers to click Generate.
+        if ($isNewOpportunity) {
+            GenerateAiAnalysis::dispatch($this->opportunity->id);
+            DiscoverContractingOfficer::dispatch($this->opportunity->id);
+        }
 
         if ($this->decisionJustConfirmed) {
             $this->opportunity->decisionHistory()->create([
@@ -868,8 +908,6 @@ class OpportunityModal extends Component
             'form.gap_owner' => ['nullable', 'string', 'max:255'],
             'form.gap_status' => ['nullable', Rule::in(self::GAP_STATUSES)],
             'form.competitive_analysis' => ['nullable', 'string'],
-            'form.competitive_discriminators' => ['nullable', 'string'],
-            'form.competitive_next_action' => ['nullable', 'string'],
             'form.incumbent' => ['nullable', 'string', 'max:255'],
             'form.competitors' => ['nullable', 'string'],
             'form.competitive_position' => ['nullable', Rule::in(self::COMPETITIVE_POSITIONS)],
@@ -913,6 +951,13 @@ class OpportunityModal extends Component
     #[Computed]
     public function solicitationKeyPoints(): array
     {
+        if (filled($this->opportunity->key_points)) {
+            return $this->opportunity->key_points;
+        }
+
+        // Falls back to the old sentence-splitter only for opportunities
+        // created before AI-condensed key points existed and not yet
+        // regenerated — once regenerated, the AI array above takes over.
         return $this->extractKeyPoints($this->opportunity->source_description ?: $this->opportunity->description);
     }
 
@@ -922,6 +967,10 @@ class OpportunityModal extends Component
     #[Computed]
     public function requirementKeyPoints(): array
     {
+        if (filled($this->opportunity->requirement_key_points)) {
+            return $this->opportunity->requirement_key_points;
+        }
+
         return $this->extractKeyPoints($this->opportunity->source_requirements ?: $this->opportunity->scope);
     }
 

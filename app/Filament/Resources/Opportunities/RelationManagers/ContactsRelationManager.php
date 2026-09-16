@@ -32,9 +32,6 @@ class ContactsRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 TextInput::make('name')->required()->maxLength(255),
-                TextInput::make('title')->maxLength(255),
-                TextInput::make('organization')->maxLength(255),
-                TextInput::make('role')->maxLength(255),
                 TextInput::make('email')->email()->maxLength(255),
                 TextInput::make('phone')->tel()->maxLength(255),
             ]);
@@ -46,9 +43,6 @@ class ContactsRelationManager extends RelationManager
             ->recordTitleAttribute('name')
             ->columns([
                 TextColumn::make('name')->weight('semibold')->searchable(),
-                TextColumn::make('title')->placeholder('—'),
-                TextColumn::make('organization')->placeholder('—'),
-                TextColumn::make('role')->badge()->color('gray')->placeholder('—'),
                 TextColumn::make('email')->copyable()->placeholder('—'),
                 TextColumn::make('phone')->placeholder('—'),
             ])

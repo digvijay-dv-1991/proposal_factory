@@ -20,7 +20,7 @@ use Filament\Support\Icons\Heroicon;
 class OpportunityForm
 {
     /**
-     * All 6 values the `decision` DB enum actually holds — matches
+     * All 7 values the `decision` DB enum actually holds — matches
      * OpportunityModal::DECISIONS on the public board.
      *
      * @var array<string, string>
@@ -30,6 +30,7 @@ class OpportunityForm
         'More Info' => 'More Info',
         'Monitoring' => 'Monitoring',
         'Shape' => 'Shape',
+        'Open Call' => 'Open Call',
         'Bid' => 'Bid',
         'No Bid' => 'No Bid',
     ];
@@ -268,19 +269,15 @@ class OpportunityForm
                             ->options(array_combine(OpportunityModal::COMPETITIVE_POSITIONS, OpportunityModal::COMPETITIVE_POSITIONS))
                             ->default('Unknown')
                             ->native(false),
-                        TextInput::make('competitive_next_action'),
                         Textarea::make('competitors')
                             ->helperText('One per line, or separated by ";" / ",".')
                             ->autosize()
                             ->rows(2)
                             ->columnSpanFull(),
                         Textarea::make('competitive_analysis')
+                            ->helperText('HTML bullet list — covers position rationale, discriminators, and recommended next action together.')
                             ->autosize()
-                            ->rows(3)
-                            ->columnSpanFull(),
-                        Textarea::make('competitive_discriminators')
-                            ->autosize()
-                            ->rows(3)
+                            ->rows(4)
                             ->columnSpanFull(),
                         Textarea::make('teaming')
                             ->autosize()
