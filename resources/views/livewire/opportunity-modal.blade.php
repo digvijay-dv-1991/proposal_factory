@@ -1,4 +1,11 @@
-<div>
+<div
+    wire:transition:enter="modal-enter"
+    wire:transition:enter-start="modal-enter-start"
+    wire:transition:enter-end="modal-enter-end"
+    wire:transition:leave="modal-leave"
+    wire:transition:leave-start="modal-leave-start"
+    wire:transition:leave-end="modal-leave-end"
+>
     <div class="overlay" x-data x-on:click.self="$wire.close()">
         <div class="modal">
             <div class="modal-head">
@@ -30,7 +37,14 @@
 
             <div class="modal-body">
                 @if ($activeTab === 'Overview')
-                    <div>
+                    <div
+                        wire:transition:enter="tab-enter"
+                        wire:transition:enter-start="tab-enter-start"
+                        wire:transition:enter-end="tab-enter-end"
+                        wire:transition:leave="tab-leave"
+                        wire:transition:leave-start="tab-leave-start"
+                        wire:transition:leave-end="tab-leave-end"
+                    >
                         <div class="panel">
                             <h3>Opportunity Information</h3>
                             <div class="fields">
@@ -374,7 +388,15 @@
                         </div>
                     </aside>
                 @elseif ($activeTab === 'Bid Decision')
-                    <div class="tab-page active">
+                    <div
+                        class="tab-page active"
+                        wire:transition:enter="tab-enter"
+                        wire:transition:enter-start="tab-enter-start"
+                        wire:transition:enter-end="tab-enter-end"
+                        wire:transition:leave="tab-leave"
+                        wire:transition:leave-start="tab-leave-start"
+                        wire:transition:leave-end="tab-leave-end"
+                    >
                         @if (! $opportunity->exists)
                             <div class="notice">Save the opportunity before inviting reviewers.</div>
                         @else
@@ -427,7 +449,15 @@
                         @endif
                     </div>
                 @elseif ($activeTab === 'Contracting Officers')
-                    <div class="tab-page active">
+                    <div
+                        class="tab-page active"
+                        wire:transition:enter="tab-enter"
+                        wire:transition:enter-start="tab-enter-start"
+                        wire:transition:enter-end="tab-enter-end"
+                        wire:transition:leave="tab-leave"
+                        wire:transition:leave-start="tab-leave-start"
+                        wire:transition:leave-end="tab-leave-end"
+                    >
                         @if (! $opportunity->exists)
                             <div class="notice">Save the opportunity before adding contracting officers.</div>
                         @else
@@ -470,7 +500,15 @@
                         @endif
                     </div>
                 @elseif ($activeTab === 'Updates')
-                    <div class="tab-page active">
+                    <div
+                        class="tab-page active"
+                        wire:transition:enter="tab-enter"
+                        wire:transition:enter-start="tab-enter-start"
+                        wire:transition:enter-end="tab-enter-end"
+                        wire:transition:leave="tab-leave"
+                        wire:transition:leave-start="tab-leave-start"
+                        wire:transition:leave-end="tab-leave-end"
+                    >
                         @if (! $opportunity->exists)
                             <div class="notice">Save the opportunity before logging updates.</div>
                         @else
@@ -509,7 +547,15 @@
                         @endif
                     </div>
                 @elseif ($activeTab === 'Gap Analysis')
-                    <div class="tab-page active">
+                    <div
+                        class="tab-page active"
+                        wire:transition:enter="tab-enter"
+                        wire:transition:enter-start="tab-enter-start"
+                        wire:transition:enter-end="tab-enter-end"
+                        wire:transition:leave="tab-leave"
+                        wire:transition:leave-start="tab-leave-start"
+                        wire:transition:leave-end="tab-leave-end"
+                    >
                         <div class="panel">
                             <h3>Gap Analysis</h3>
                             <div class="fields">
@@ -531,7 +577,16 @@
                         </div>
                     </div>
                 @elseif ($activeTab === 'Competitive Analysis')
-                    <div class="tab-page active" @if ($generatingCompetitiveAnalysis) wire:poll.3s="pollCompetitiveAnalysis" @endif>
+                    <div
+                        class="tab-page active"
+                        @if ($generatingCompetitiveAnalysis) wire:poll.3s="pollCompetitiveAnalysis" @endif
+                        wire:transition:enter="tab-enter"
+                        wire:transition:enter-start="tab-enter-start"
+                        wire:transition:enter-end="tab-enter-end"
+                        wire:transition:leave="tab-leave"
+                        wire:transition:leave-start="tab-leave-start"
+                        wire:transition:leave-end="tab-leave-end"
+                    >
                         <div class="panel">
                             <h3>Incumbent</h3>
                             <div class="fields">
@@ -641,7 +696,15 @@
                         </div>
                     </div>
                 @elseif ($activeTab === 'Teaming')
-                    <div class="tab-page active">
+                    <div
+                        class="tab-page active"
+                        wire:transition:enter="tab-enter"
+                        wire:transition:enter-start="tab-enter-start"
+                        wire:transition:enter-end="tab-enter-end"
+                        wire:transition:leave="tab-leave"
+                        wire:transition:leave-start="tab-leave-start"
+                        wire:transition:leave-end="tab-leave-end"
+                    >
                         @if (! $opportunity->exists)
                             <div class="notice">Save the opportunity before adding teaming partners.</div>
                         @else
@@ -703,7 +766,15 @@
                         @endif
                     </div>
                 @elseif ($activeTab === 'Attachments')
-                    <div class="tab-page active">
+                    <div
+                        class="tab-page active"
+                        wire:transition:enter="tab-enter"
+                        wire:transition:enter-start="tab-enter-start"
+                        wire:transition:enter-end="tab-enter-end"
+                        wire:transition:leave="tab-leave"
+                        wire:transition:leave-start="tab-leave-start"
+                        wire:transition:leave-end="tab-leave-end"
+                    >
                         @if (! $opportunity->exists)
                             <div class="notice">Save the opportunity before adding attachments.</div>
                         @else
@@ -746,7 +817,16 @@
                         @endif
                     </div>
                 @elseif ($activeTab === 'AI Analysis')
-                    <div class="tab-page active" @if ($generatingAiAnalysis) wire:poll.3s="pollAiAnalysis" @endif>
+                    <div
+                        class="tab-page active"
+                        @if ($generatingAiAnalysis) wire:poll.3s="pollAiAnalysis" @endif
+                        wire:transition:enter="tab-enter"
+                        wire:transition:enter-start="tab-enter-start"
+                        wire:transition:enter-end="tab-enter-end"
+                        wire:transition:leave="tab-leave"
+                        wire:transition:leave-start="tab-leave-start"
+                        wire:transition:leave-end="tab-leave-end"
+                    >
                         <div class="panel ai-generate-panel">
                             <div class="ai-generate-row">
                                 <div>
@@ -828,7 +908,17 @@
     </div>
 
     @if ($showDecisionDialog)
-        <div class="decision-overlay" x-data x-on:click.self="$wire.cancelDecision()">
+        <div
+            class="decision-overlay"
+            x-data
+            x-on:click.self="$wire.cancelDecision()"
+            wire:transition:enter="modal-enter"
+            wire:transition:enter-start="modal-enter-start"
+            wire:transition:enter-end="modal-enter-end"
+            wire:transition:leave="modal-leave"
+            wire:transition:leave-start="modal-leave-start"
+            wire:transition:leave-end="modal-leave-end"
+        >
             <div class="decision-dialog" role="dialog" aria-modal="true" aria-labelledby="decisionDialogTitle">
                 <h3 id="decisionDialogTitle">Authorize {{ $pendingDecision }}</h3>
                 <p>

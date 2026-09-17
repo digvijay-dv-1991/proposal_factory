@@ -315,8 +315,16 @@ class OpportunityBoard extends Component
     {
         // Capture "is this tab already active" before resetting state below,
         // so clicking the active tab again toggles back to Pipeline instead
-        // of silently re-selecting itself.
-        $reselecting = $this->activeTab === $tab;
+        // of silently re-selecting itself. Deliberately calls currentTab()
+        // (a plain, always-fresh method) rather than the cached $this->
+        // activeTab property: this method itself mutates activeTab's own
+        // dependencies a few lines down, and Livewire's #[Computed] caches
+        // a property for the rest of the request the first time it's read —
+        // reading the cached property here, then changing what it depends
+        // on, left every later read in the same request (the tab bar's
+        // highlighting, the board query's own tab filter) seeing the tab
+        // from before this click instead of the one just selected.
+        $reselecting = $this->currentTab() === $tab;
 
         $this->addedToday = false;
         $this->decisionFilter = '';
@@ -350,10 +358,13 @@ class OpportunityBoard extends Component
 
     /**
      * Which tab reads as "active", derived from the same properties the
-     * dropdowns use rather than tracked separately.
+     * dropdowns use rather than tracked separately. A plain method, not
+     * #[Computed] — selectTab() needs to call this mid-mutation and get a
+     * fresh answer every time; the cached activeTab() property below is a
+     * one-line wrapper around it for everywhere else (the tab bar, the
+     * board's own tab filter) that just wants the memoized read.
      */
-    #[Computed]
-    public function activeTab(): string
+    private function currentTab(): string
     {
         return match (true) {
             $this->addedToday => 'added_today',
@@ -365,6 +376,12 @@ class OpportunityBoard extends Component
             $this->phaseFilter === 'Submitted' && $this->decisionFilter === '' => 'submitted',
             default => 'pipeline',
         };
+    }
+
+    #[Computed]
+    public function activeTab(): string
+    {
+        return $this->currentTab();
     }
 
     /**

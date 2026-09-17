@@ -1821,7 +1821,6 @@ input, select {
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: overlay-fade-in .16s ease-out;
 }
 
 .modal {
@@ -1833,17 +1832,175 @@ input, select {
     flex-direction: column;
     overflow: hidden;
     border-top: 4px solid var(--gold);
-    animation: modal-scale-in .2s cubic-bezier(.2, .8, .2, 1);
 }
 
-@keyframes overlay-fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+/* ==========================================================================
+   Modal/overlay open + close transitions, applied via wire:transition on the
+   element the @if (or nested-component mount) actually adds/removes — that's
+   why the backdrop/panel pairs below are addressed as ".modal-enter .overlay"
+   (a descendant) in the opportunity modal's case, but ".modal-enter.app-
+   overlay" (the same element) for the market-intelligence overlays and the
+   decision dialog, which put wire:transition directly on their own backdrop
+   element. Both the backdrop (fade only) and the panel (fade + scale + rise)
+   animate together, driven by one wire:transition per dialog — reused across
+   all three "big dialog" shapes in this app so they all feel like one
+   system. Deliberately more pronounced than a subtle fade: the panel moves
+   a visible distance and scales up noticeably on the way in.
+   ========================================================================== */
+
+.modal-enter.app-overlay,
+.modal-enter.decision-overlay,
+.modal-enter .overlay,
+.modal-leave.app-overlay,
+.modal-leave.decision-overlay,
+.modal-leave .overlay {
+    transition: opacity .2s ease;
 }
 
-@keyframes modal-scale-in {
-    from { opacity: 0; transform: scale(.96) translateY(8px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
+.modal-enter-start.app-overlay,
+.modal-enter-start.decision-overlay,
+.modal-enter-start .overlay,
+.modal-leave-end.app-overlay,
+.modal-leave-end.decision-overlay,
+.modal-leave-end .overlay {
+    opacity: 0;
+}
+
+.modal-enter-end.app-overlay,
+.modal-enter-end.decision-overlay,
+.modal-enter-end .overlay,
+.modal-leave-start.app-overlay,
+.modal-leave-start.decision-overlay,
+.modal-leave-start .overlay {
+    opacity: 1;
+}
+
+.modal-enter .app-dialog,
+.modal-enter .decision-dialog,
+.modal-enter .modal {
+    transition: opacity .26s cubic-bezier(.16, 1, .3, 1), transform .26s cubic-bezier(.16, 1, .3, 1);
+}
+
+.modal-leave .app-dialog,
+.modal-leave .decision-dialog,
+.modal-leave .modal {
+    transition: opacity .18s ease-in, transform .18s ease-in;
+}
+
+.modal-enter-start .app-dialog,
+.modal-enter-start .decision-dialog,
+.modal-enter-start .modal {
+    opacity: 0;
+    transform: scale(.9) translateY(28px);
+}
+
+.modal-enter-end .app-dialog,
+.modal-enter-end .decision-dialog,
+.modal-enter-end .modal {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+.modal-leave-start .app-dialog,
+.modal-leave-start .decision-dialog,
+.modal-leave-start .modal {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+.modal-leave-end .app-dialog,
+.modal-leave-end .decision-dialog,
+.modal-leave-end .modal {
+    opacity: 0;
+    transform: scale(.95) translateY(14px);
+}
+
+/* Small anchored dropdown panels (notification bell, user menu) — a lighter,
+   faster version of the same language: fade + scale from the top-right
+   corner they hang off of. */
+
+.dropdown-enter,
+.dropdown-leave {
+    transform-origin: top right;
+}
+
+.dropdown-enter {
+    transition: opacity .18s ease-out, transform .18s ease-out;
+}
+
+.dropdown-leave {
+    transition: opacity .12s ease-in, transform .12s ease-in;
+}
+
+.dropdown-enter-start,
+.dropdown-leave-end {
+    opacity: 0;
+    transform: scale(.94) translateY(-10px);
+}
+
+.dropdown-enter-end,
+.dropdown-leave-start {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+/* Modal tab content — a quick fade on the incoming tab only. The leave side
+   is intentionally very short (not skipped entirely): wire:transition always
+   needs a real leave transition to fire a transitionend event, or Livewire's
+   morph-removal logic (which defers removing the old node until that event
+   fires) never actually removes it. Keeping it short avoids the outgoing and
+   incoming tab visibly overlapping for long, since both sit in normal
+   document flow rather than stacked on top of each other. */
+
+.tab-enter {
+    transition: opacity .16s ease-out;
+}
+
+.tab-leave {
+    transition: opacity .08s ease-in;
+}
+
+.tab-enter-start,
+.tab-leave-end {
+    opacity: 0;
+}
+
+.tab-enter-end,
+.tab-leave-start {
+    opacity: 1;
+}
+
+/* Top-of-page progress bar shown for the duration of any OpportunityBoard
+   Livewire request (tab switch, filter/search change, opening a card, …).
+   wire:loading.delay.shortest on the element skips it for a near-instant
+   response and only shows it once a request is actually taking a moment —
+   this exists so clicking a tab/filter is never visually silent while the
+   server round-trip is in flight, which otherwise reads as "did that even
+   register?" regardless of how fast the backend actually is. */
+
+.board-loading-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 2000;
+    overflow: hidden;
+    background: var(--grey-200);
+}
+
+.board-loading-bar::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 40%;
+    background: var(--gold);
+    animation: board-loading-sweep 1s ease-in-out infinite;
+}
+
+@keyframes board-loading-sweep {
+    0% { left: -40%; }
+    100% { left: 100%; }
 }
 
 .modal-head {
@@ -2565,7 +2722,6 @@ input, select {
     align-items: center;
     justify-content: center;
     padding: 20px;
-    animation: overlay-fade-in .16s ease-out;
 }
 
 .decision-dialog {
@@ -2575,7 +2731,6 @@ input, select {
     box-shadow: 0 24px 70px rgba(29, 29, 29, .28);
     border-top: 5px solid var(--gold);
     padding: 22px;
-    animation: modal-scale-in .2s cubic-bezier(.2, .8, .2, 1);
 }
 
 .decision-dialog h3 {

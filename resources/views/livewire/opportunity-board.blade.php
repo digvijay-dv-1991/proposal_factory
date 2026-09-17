@@ -1,4 +1,6 @@
 <div>
+    <div class="board-loading-bar" wire:loading.delay.shortest></div>
+
     <header class="masthead">
         <div class="brand-row">
             <div class="brand">
@@ -36,7 +38,15 @@
                         @endif
                     </button>
                     @if ($showNotifications)
-                        <div class="notification-dropdown">
+                        <div
+                            class="notification-dropdown"
+                            wire:transition:enter="dropdown-enter"
+                            wire:transition:enter-start="dropdown-enter-start"
+                            wire:transition:enter-end="dropdown-enter-end"
+                            wire:transition:leave="dropdown-leave"
+                            wire:transition:leave-start="dropdown-leave-start"
+                            wire:transition:leave-end="dropdown-leave-end"
+                        >
                             <div class="notification-dropdown-head">
                                 <strong>Notifications</strong>
                                 <button type="button" class="btn" wire:click="markAllNotificationsRead">Mark all read</button>
@@ -67,7 +77,15 @@
                         {{ \Illuminate\Support\Str::of(auth()->user()->name)->substr(0, 1)->upper() }}
                     </button>
                     @if ($showUserMenu)
-                        <div class="user-dropdown">
+                        <div
+                            class="user-dropdown"
+                            wire:transition:enter="dropdown-enter"
+                            wire:transition:enter-start="dropdown-enter-start"
+                            wire:transition:enter-end="dropdown-enter-end"
+                            wire:transition:leave="dropdown-leave"
+                            wire:transition:leave-start="dropdown-leave-start"
+                            wire:transition:leave-end="dropdown-leave-end"
+                        >
                             <div class="user-dropdown-head">
                                 <strong>{{ auth()->user()->name }}</strong>
                                 <span>{{ auth()->user()->email }}</span>
@@ -262,7 +280,16 @@
     @endif
 
     @if ($activeOverlay !== '')
-        <div class="app-overlay" wire:click.self="closeOverlay">
+        <div
+            class="app-overlay"
+            wire:click.self="closeOverlay"
+            wire:transition:enter="modal-enter"
+            wire:transition:enter-start="modal-enter-start"
+            wire:transition:enter-end="modal-enter-end"
+            wire:transition:leave="modal-leave"
+            wire:transition:leave-start="modal-leave-start"
+            wire:transition:leave-end="modal-leave-end"
+        >
             <div class="app-dialog wide">
                 <div class="app-dialog-head">
                     <h2>{{ $this->overlayTitle() }}</h2>
