@@ -19,6 +19,6 @@ Schedule::command(SendBidDueDateAlerts::class)
 // Same 8am Eastern slot as the client's own "Morning Recon" workflow this
 // replaces the manual half of. Run `php artisan opportunities:fetch-sam-gov`
 // directly (add --limit=N locally to stay under a low-tier API quota).
-// Schedule::command(FetchSamGovOpportunities::class)
-//     ->dailyAt('08:00')
-//     ->timezone('America/New_York');
+Schedule::command(FetchSamGovOpportunities::class)
+    ->dailyAt('08:00')
+    ->timezone('America/New_York');

@@ -3,8 +3,10 @@
 namespace App\Observers;
 
 use App\Events\OpportunityBoardChanged;
+use App\Livewire\OpportunityBoard;
 use App\Models\Opportunity;
 use App\Services\BidAlertService;
+use Illuminate\Support\Facades\Cache;
 
 class OpportunityObserver
 {
@@ -34,5 +36,21 @@ class OpportunityObserver
         if ($opportunity->wasChanged('decision') || $opportunity->wasChanged('phase')) {
             OpportunityBoardChanged::dispatch();
         }
+    }
+
+    /**
+     * Invalidates OpportunityBoard's cached filter-dropdown option lists
+     * (agency/set-aside/focus) on every create AND update — broader than
+     * the decision/phase-only OpportunityBoardChanged broadcast above,
+     * since editing an opportunity's agency, set_aside, or focus tags
+     * doesn't necessarily change its decision or phase. Unconditional
+     * rather than checking wasChanged() on those specific fields: this is
+     * a handful of cheap Cache::forget calls, not worth the bookkeeping.
+     */
+    public function saved(Opportunity $opportunity): void
+    {
+        Cache::forget(OpportunityBoard::AGENCY_OPTIONS_CACHE_KEY);
+        Cache::forget(OpportunityBoard::BID_TYPE_OPTIONS_CACHE_KEY);
+        Cache::forget(OpportunityBoard::FOCUS_OPTIONS_CACHE_KEY);
     }
 }

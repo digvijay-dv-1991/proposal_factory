@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * @property-read string $fit
@@ -357,18 +358,28 @@ class Opportunity extends Model
                 return [];
             }
 
-            $catalog = MarketCompetitor::query()->get(['name', 'url'])->keyBy(
-                fn (MarketCompetitor $competitor): string => mb_strtolower($competitor->name)
+            // Cached as a plain array, not an Eloquent Collection of models:
+            // the database cache driver serializes the value with PHP's
+            // serialize(), and unserializing a stored Model/Collection can
+            // fail with an "incomplete object" error depending on class
+            // autoload timing. A plain array has no such class-identity
+            // concerns and is exactly as fast to read here.
+            $catalog = Cache::rememberForever(
+                MarketCompetitor::CATALOG_CACHE_KEY,
+                fn () => MarketCompetitor::query()->get(['name', 'url'])
+                    ->keyBy(fn (MarketCompetitor $competitor): string => mb_strtolower($competitor->name))
+                    ->map(fn (MarketCompetitor $competitor): array => ['name' => $competitor->name, 'url' => $competitor->url])
+                    ->all(),
             );
 
             $links = [];
             foreach ($names as $name) {
-                $match = $catalog->get(mb_strtolower($name));
+                $match = $catalog[mb_strtolower($name)] ?? null;
 
                 if ($match !== null) {
                     $links[] = [
-                        'name' => $match->name,
-                        'url' => $match->url,
+                        'name' => $match['name'],
+                        'url' => $match['url'],
                         'role' => mb_strtolower($name) === mb_strtolower((string) $this->incumbent) ? 'Incumbent' : 'Competitor',
                     ];
                 }

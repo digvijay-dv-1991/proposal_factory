@@ -9,12 +9,34 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
+/**
+ * The #[Computed] properties below must be read as magic properties
+ * (e.g. $this->opportunities, not $this->opportunities()) — Livewire only
+ * memoizes a Computed method for the lifetime of the request when it's
+ * accessed that way; calling it as a normal method bypasses the cache
+ * entirely and re-runs the query every time. These @property-read tags
+ * both document that and let PHPStan type-check the magic access.
+ *
+ * @property-read DatabaseNotification[]|Collection<int, DatabaseNotification> $notifications
+ * @property-read int $unreadNotificationCount
+ * @property-read string $activeTab
+ * @property-read EloquentCollection<int, Opportunity> $opportunities
+ * @property-read array<string, int> $tabCounts
+ * @property-read array<string, int> $sectionCounts
+ * @property-read array{active: int, validated: int, pipeline_value: float, due_soon: int} $metrics
+ * @property-read Collection<string, array{items: EloquentCollection<int, Opportunity>, total: float}> $board
+ * @property-read array<int, string> $visiblePhases
+ * @property-read array<int, string> $agencyOptions
+ * @property-read array<int, string> $bidTypeOptions
+ * @property-read array<int, string> $focusOptions
+ */
 #[Layout('layouts.capture-deck')]
 class OpportunityBoard extends Component
 {
@@ -38,6 +60,38 @@ class OpportunityBoard extends Component
     ];
 
     public const FIT_LEVELS = ['Strong', 'Moderate', 'No Fit'];
+
+    /**
+     * Cache keys for the filter-dropdown option lists below — near-static
+     * reference data (only changes when an opportunity is created or an
+     * agency/set-aside/focus value is edited), invalidated from
+     * OpportunityObserver::saved() rather than recomputed via a full-table
+     * DISTINCT/pluck scan on every single board interaction.
+     */
+    public const AGENCY_OPTIONS_CACHE_KEY = 'opportunities:agency-options';
+
+    public const BID_TYPE_OPTIONS_CACHE_KEY = 'opportunities:bid-type-options';
+
+    public const FOCUS_OPTIONS_CACHE_KEY = 'opportunities:focus-options';
+
+    /**
+     * Columns actually rendered by the board/row-list views
+     * (opportunity-card.blade.php, the No Bid/Submitted row list) and their
+     * backing accessors (fit/strength classes off go_strength, source_url/
+     * has_required_source off link+govwin_link, has_gap off gap,
+     * has_competitive_analysis off competitive_analysis+incumbent+
+     * competitors). The ~20 AI-narrative/RFP/incumbent-detail TEXT columns
+     * only the detail modal needs are deliberately left out here — that
+     * modal loads the full model itself via its own findOrFail().
+     *
+     * @var array<int, string>
+     */
+    private const LIST_COLUMNS = [
+        'id', 'external_id', 'name', 'agency', 'solicitation', 'value', 'set_aside', 'phase', 'decision',
+        'date_added', 'response_due', 'release_date', 'link', 'govwin_link', 'origin', 'go_strength', 'gap',
+        'competitive_analysis', 'incumbent', 'competitors', 'description', 'decision_by', 'decision_comment',
+        'decision_date',
+    ];
 
     /**
      * Phases hidden from the default board (no phase filter selected) —
@@ -262,7 +316,7 @@ class OpportunityBoard extends Component
         // Capture "is this tab already active" before resetting state below,
         // so clicking the active tab again toggles back to Pipeline instead
         // of silently re-selecting itself.
-        $reselecting = $this->activeTab() === $tab;
+        $reselecting = $this->activeTab === $tab;
 
         $this->addedToday = false;
         $this->decisionFilter = '';
@@ -319,12 +373,12 @@ class OpportunityBoard extends Component
      */
     public function isRowListTab(): bool
     {
-        return in_array($this->activeTab(), ['no_bid', 'submitted'], true);
+        return in_array($this->activeTab, ['no_bid', 'submitted'], true);
     }
 
     public function isNoBidTab(): bool
     {
-        return $this->activeTab() === 'no_bid';
+        return $this->activeTab === 'no_bid';
     }
 
     /**
@@ -357,9 +411,10 @@ class OpportunityBoard extends Component
     #[Computed]
     public function opportunities(): EloquentCollection
     {
-        $activeTab = $this->activeTab();
+        $activeTab = $this->activeTab;
 
         $query = $this->applyTab($this->filteredQuery(), $activeTab)
+            ->select(self::LIST_COLUMNS)
             ->when($this->phaseFilter !== '' && $activeTab !== 'submitted', fn ($q) => $q->where('phase', $this->phaseFilter));
 
         // No Bid's row-list sorts newest decision first (tie-broken
@@ -415,7 +470,7 @@ class OpportunityBoard extends Component
     public function sectionCounts(): array
     {
         return collect(self::SECTIONS)->mapWithKeys(fn (string $section) => [
-            $section => $this->opportunities()->where('origin', $section)->count(),
+            $section => $this->opportunities->where('origin', $section)->count(),
         ])->all();
     }
 
@@ -441,11 +496,19 @@ class OpportunityBoard extends Component
     }
 
     /**
+     * Only the 4 columns metrics() actually reads — this used to run a
+     * second full-column model fetch duplicating opportunities()'s work;
+     * metrics() is intentionally unfiltered by the board's own search/tab
+     * filters (it's a global pipeline total), so it can't just reuse that
+     * collection, but it never needed the ~20 AI-narrative/RFP columns.
+     *
      * @return EloquentCollection<int, Opportunity>
      */
     private function activeOpportunities(): EloquentCollection
     {
-        return Opportunity::query()->where('decision', '!=', 'No Bid')->get();
+        return Opportunity::query()
+            ->where('decision', '!=', 'No Bid')
+            ->get(['id', 'value', 'link', 'govwin_link', 'response_due']);
     }
 
     /**
@@ -457,8 +520,8 @@ class OpportunityBoard extends Component
     #[Computed]
     public function board(): Collection
     {
-        $grouped = $this->opportunities()->groupBy('phase');
-        $empty = $this->opportunities()->take(0);
+        $grouped = $this->opportunities->groupBy('phase');
+        $empty = $this->opportunities->take(0);
 
         return collect(self::PHASES)->mapWithKeys(function (string $phase) use ($grouped, $empty) {
             $items = $grouped->get($phase) ?? $empty;
@@ -484,7 +547,7 @@ class OpportunityBoard extends Component
 
     public function visiblePhaseCount(): int
     {
-        return count($this->visiblePhases());
+        return count($this->visiblePhases);
     }
 
     /**
@@ -507,7 +570,7 @@ class OpportunityBoard extends Component
      */
     public function boardColumn(string $phase): array
     {
-        return $this->board()[$phase];
+        return $this->board[$phase];
     }
 
     /**
@@ -516,7 +579,10 @@ class OpportunityBoard extends Component
     #[Computed]
     public function agencyOptions(): array
     {
-        return Opportunity::query()->distinct()->orderBy('agency')->pluck('agency')->all();
+        return Cache::rememberForever(
+            self::AGENCY_OPTIONS_CACHE_KEY,
+            fn () => Opportunity::query()->distinct()->orderBy('agency')->pluck('agency')->all(),
+        );
     }
 
     /**
@@ -525,7 +591,10 @@ class OpportunityBoard extends Component
     #[Computed]
     public function bidTypeOptions(): array
     {
-        return Opportunity::query()->whereNotNull('set_aside')->distinct()->orderBy('set_aside')->pluck('set_aside')->all();
+        return Cache::rememberForever(
+            self::BID_TYPE_OPTIONS_CACHE_KEY,
+            fn () => Opportunity::query()->whereNotNull('set_aside')->distinct()->orderBy('set_aside')->pluck('set_aside')->all(),
+        );
     }
 
     /**
@@ -534,13 +603,16 @@ class OpportunityBoard extends Component
     #[Computed]
     public function focusOptions(): array
     {
-        return Opportunity::query()->pluck('focus')
-            ->filter()
-            ->flatten(1)
-            ->unique()
-            ->sort()
-            ->values()
-            ->all();
+        return Cache::rememberForever(
+            self::FOCUS_OPTIONS_CACHE_KEY,
+            fn () => Opportunity::query()->pluck('focus')
+                ->filter()
+                ->flatten(1)
+                ->unique()
+                ->sort()
+                ->values()
+                ->all(),
+        );
     }
 
     public function render(): View

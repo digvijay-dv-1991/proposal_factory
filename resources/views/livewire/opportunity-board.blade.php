@@ -11,19 +11,19 @@
         <div class="metrics-row">
             <div class="metrics">
                 <div class="metric">
-                    <strong>{{ $this->metrics()['active'] }}</strong>
+                    <strong>{{ $this->metrics['active'] }}</strong>
                     <span>Active Opportunities</span>
                 </div>
                 <div class="metric">
-                    <strong>{{ $this->metrics()['validated'] }}/{{ $this->metrics()['active'] }}</strong>
+                    <strong>{{ $this->metrics['validated'] }}/{{ $this->metrics['active'] }}</strong>
                     <span>Validated Opportunities</span>
                 </div>
                 <div class="metric">
-                    <strong>{{ \Illuminate\Support\Number::currency($this->metrics()['pipeline_value'], in: 'USD', precision: 0) }}</strong>
+                    <strong>{{ \Illuminate\Support\Number::currency($this->metrics['pipeline_value'], in: 'USD', precision: 0) }}</strong>
                     <span>Active Pipeline Value</span>
                 </div>
                 <div class="metric">
-                    <strong>{{ $this->metrics()['due_soon'] }}</strong>
+                    <strong>{{ $this->metrics['due_soon'] }}</strong>
                     <span>Due &lt;14 Days</span>
                 </div>
             </div>
@@ -31,8 +31,8 @@
                 <div class="notification-bell" x-data x-on:click.outside="$wire.showNotifications && $wire.toggleNotifications()">
                     <button type="button" class="bell-btn" wire:click="toggleNotifications">
                         &#128276;
-                        @if ($this->unreadNotificationCount() > 0)
-                            <span class="bell-count">{{ $this->unreadNotificationCount() }}</span>
+                        @if ($this->unreadNotificationCount > 0)
+                            <span class="bell-count">{{ $this->unreadNotificationCount }}</span>
                         @endif
                     </button>
                     @if ($showNotifications)
@@ -41,7 +41,7 @@
                                 <strong>Notifications</strong>
                                 <button type="button" class="btn" wire:click="markAllNotificationsRead">Mark all read</button>
                             </div>
-                            @forelse ($this->notifications() as $notification)
+                            @forelse ($this->notifications as $notification)
                                 <button type="button" class="notification-item {{ $notification->read_at ? '' : 'unread' }}" wire:click="openNotification('{{ $notification->id }}')">
                                     <div><strong>{{ $notification->data['title'] }}</strong></div>
                                     <div>{{ $notification->data['body'] }}</div>
@@ -88,7 +88,7 @@
             </div>
             <select wire:model.live="agencyFilter">
                 <option value="">All Agencies</option>
-                @foreach ($this->agencyOptions() as $agency)
+                @foreach ($this->agencyOptions as $agency)
                     <option value="{{ $agency }}">{{ $agency }}</option>
                 @endforeach
             </select>
@@ -106,7 +106,7 @@
             </select>
             <select wire:model.live="focusFilter">
                 <option value="">All Focus Areas</option>
-                @foreach ($this->focusOptions() as $focus)
+                @foreach ($this->focusOptions as $focus)
                     <option value="{{ $focus }}">{{ $focus }}</option>
                 @endforeach
             </select>
@@ -118,7 +118,7 @@
             </select>
             <select wire:model.live="bidTypeFilter">
                 <option value="">All Bid Types</option>
-                @foreach ($this->bidTypeOptions() as $bidType)
+                @foreach ($this->bidTypeOptions as $bidType)
                     <option value="{{ $bidType }}">{{ $bidType }}</option>
                 @endforeach
             </select>
@@ -127,9 +127,9 @@
 
     <nav class="view-tabs">
         @foreach (\App\Livewire\OpportunityBoard::TABS as $key => [$kicker, $label])
-            <button type="button" class="{{ $this->activeTab() === $key ? 'active' : '' }}" data-view="{{ $key }}" wire:click="selectTab('{{ $key }}')">
+            <button type="button" class="{{ $this->activeTab === $key ? 'active' : '' }}" data-view="{{ $key }}" wire:click="selectTab('{{ $key }}')">
                 <span class="view-kicker">{{ $kicker }}</span>
-                <span class="view-label">{{ $label }} <span class="bubble">{{ $this->tabCounts()[$key] ?? 0 }}</span></span>
+                <span class="view-label">{{ $label }} <span class="bubble">{{ $this->tabCounts[$key] ?? 0 }}</span></span>
             </button>
         @endforeach
     </nav>
@@ -168,7 +168,7 @@
             <div class="section-tabs">
                 @foreach (\App\Livewire\OpportunityBoard::SECTIONS as $section)
                     <button type="button" class="{{ $sectionFilter === $section ? 'active' : '' }}" wire:click="filterBySection('{{ $section }}')">
-                        {{ $section }} <span class="count">{{ $this->sectionCounts()[$section] ?? 0 }}</span>
+                        {{ $section }} <span class="count">{{ $this->sectionCounts[$section] ?? 0 }}</span>
                     </button>
                 @endforeach
             </div>
@@ -190,7 +190,7 @@
                     <span>Source</span>
                 </div>
 
-                @forelse ($this->opportunities() as $opportunity)
+                @forelse ($this->opportunities as $opportunity)
                     <article class="submitted-row {{ $this->isNoBidTab() ? 'nobid-row' : '' }}" wire:click="openOpportunity({{ $opportunity->id }})" wire:key="row-{{ $opportunity->id }}">
                         <div>
                             <div class="row-name">{{ $opportunity->name }}</div>
@@ -226,7 +226,7 @@
                     style="{{ $this->boardGridStyle() }}"
                 @endif
             >
-                @foreach ($this->visiblePhases() as $phase)
+                @foreach ($this->visiblePhases as $phase)
                     <div class="column">
                         <button type="button" class="phase-filter-btn {{ $phaseFilter === $phase ? 'active' : '' }}" wire:click="filterByPhase('{{ $phase }}')">
                             <span class="column-title"><span class="dot"></span>{{ $phase }}</span>
