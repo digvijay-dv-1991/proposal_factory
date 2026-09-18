@@ -1,16 +1,17 @@
 <?php
 
 use App\Livewire\Forms\LoginForm;
-use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('layouts.guest')] class extends Component
+new #[Layout('layouts.auth-guest')] class extends Component
 {
     public LoginForm $form;
 
     /**
-     * Handle an incoming authentication request.
+     * Validate credentials and move on to the OTP step — the session isn't
+     * established yet, so there's nothing to regenerate or redirect
+     * "intended" to until the OTP is also verified.
      */
     public function login(): void
     {
@@ -18,54 +19,52 @@ new #[Layout('layouts.guest')] class extends Component
 
         $this->form->authenticate();
 
-        Session::regenerate();
-
-        $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
+        $this->redirectRoute('login.verify', navigate: true);
     }
 }; ?>
 
 <div>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    <h1 class="auth-form-title">{{ __('Log in') }}</h1>
+    <p class="auth-intro">{{ __('Enter your credentials to continue.') }}</p>
+
+    @if (session('status'))
+        <div class="auth-status">{{ session('status') }}</div>
+    @endif
 
     <form wire:submit="login">
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="form.email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('form.email')" class="mt-2" />
+        <div class="auth-field">
+            <label for="email" class="auth-label">{{ __('Email') }}</label>
+            <input wire:model="form.email" id="email" class="auth-input" type="email" name="email" required autofocus autocomplete="username">
+            @error('form.email')
+                <p class="auth-error">{{ $message }}</p>
+            @enderror
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input wire:model="form.password" id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('form.password')" class="mt-2" />
+        <div class="auth-field">
+            <label for="password" class="auth-label">{{ __('Password') }}</label>
+            <input wire:model="form.password" id="password" class="auth-input" type="password" name="password" required autocomplete="current-password">
+            @error('form.password')
+                <p class="auth-error">{{ $message }}</p>
+            @enderror
         </div>
 
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember" class="inline-flex items-center">
-                <input wire:model="form.remember" id="remember" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-            </label>
-        </div>
+        <label for="remember" class="auth-remember">
+            <input wire:model="form.remember" id="remember" type="checkbox" class="auth-checkbox" name="remember">
+            {{ __('Remember me') }}
+        </label>
 
-        <div class="flex items-center justify-end mt-4">
+        <div class="auth-actions">
             @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}" wire:navigate>
+                <a class="auth-link" href="{{ route('password.request') }}" wire:navigate>
                     {{ __('Forgot your password?') }}
                 </a>
+            @else
+                <span></span>
             @endif
 
-            <x-primary-button class="ms-3">
+            <button type="submit" class="auth-button">
                 {{ __('Log in') }}
-            </x-primary-button>
+            </button>
         </div>
     </form>
 </div>

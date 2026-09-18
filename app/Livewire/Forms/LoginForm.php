@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Forms;
 
+use App\Models\User;
+use App\Services\TwoFactorLoginService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -22,7 +24,9 @@ class LoginForm extends Form
     public bool $remember = false;
 
     /**
-     * Attempt to authenticate the request's credentials.
+     * Validate the request's credentials and issue an OTP challenge. Does
+     * not establish the session — that only happens once the OTP is also
+     * verified, in the login-verify Volt page.
      *
      * @throws ValidationException
      */
@@ -30,7 +34,7 @@ class LoginForm extends Form
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only(['email', 'password']), $this->remember)) {
+        if (! Auth::validate($this->only(['email', 'password']))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -39,6 +43,10 @@ class LoginForm extends Form
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        $user = User::where('email', $this->email)->firstOrFail();
+
+        app(TwoFactorLoginService::class)->issueChallenge($user, $this->remember);
     }
 
     /**

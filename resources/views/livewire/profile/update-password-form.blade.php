@@ -38,42 +38,42 @@ new class extends Component
     }
 }; ?>
 
-<section>
-    <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Update Password') }}
-        </h2>
+<div class="panel">
+    <h3>Update Password</h3>
+    <p class="panel-description">Ensure your account is using a long, random password to stay secure.</p>
 
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __('Ensure your account is using a long, random password to stay secure.') }}
-        </p>
-    </header>
-
-    <form wire:submit="updatePassword" class="mt-6 space-y-6">
-        <div>
-            <x-input-label for="update_password_current_password" :value="__('Current Password')" />
-            <x-text-input wire:model="current_password" id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
-            <x-input-error :messages="$errors->get('current_password')" class="mt-2" />
+    <form wire:submit="updatePassword" class="field-stack">
+        <div class="field">
+            <label for="update_password_current_password">Current Password</label>
+            <input wire:model="current_password" id="update_password_current_password" name="current_password" type="password" autocomplete="current-password">
+            @error('current_password') <div class="source-required-note">{{ $message }}</div> @enderror
         </div>
 
-        <div>
-            <x-input-label for="update_password_password" :value="__('New Password')" />
-            <x-text-input wire:model="password" id="update_password_password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        <div class="field">
+            <label for="update_password_password">New Password</label>
+            <input wire:model="password" id="update_password_password" name="password" type="password" autocomplete="new-password">
+            @error('password') <div class="source-required-note">{{ $message }}</div> @enderror
         </div>
 
-        <div>
-            <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" />
-            <x-text-input wire:model="password_confirmation" id="update_password_password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+        <div class="field">
+            <label for="update_password_password_confirmation">Confirm Password</label>
+            <input wire:model="password_confirmation" id="update_password_password_confirmation" name="password_confirmation" type="password" autocomplete="new-password">
+            @error('password_confirmation') <div class="source-required-note">{{ $message }}</div> @enderror
         </div>
 
-        <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
+        <div class="form-actions">
+            <button type="submit" class="btn primary">Save</button>
+        </div>
 
-            <x-action-message class="me-3" on="password-updated">
-                {{ __('Saved.') }}
-            </x-action-message>
+        <div x-data="{ shown: false, timeout: null }"
+             x-init="@this.on('password-updated', () => { clearTimeout(timeout); shown = true; timeout = setTimeout(() => { shown = false }, 2500); })"
+             x-show="shown"
+             x-transition:enter="toast-enter" x-transition:enter-start="toast-enter-start" x-transition:enter-end="toast-enter-end"
+             x-transition:leave="toast-leave" x-transition:leave-start="toast-leave-start" x-transition:leave-end="toast-leave-end"
+             style="display: none;"
+             class="toast">
+            <span class="toast-icon">&#10003;</span>
+            Password updated successfully.
         </div>
     </form>
-</section>
+</div>
